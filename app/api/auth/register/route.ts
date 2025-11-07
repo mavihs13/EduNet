@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.text()
     console.log('Registration request body:', body)
     
-    const { email, username, password } = JSON.parse(body)
+    const { email, phone, username, password } = JSON.parse(body)
 
     if (!email || !username || !password) {
       return NextResponse.json(
@@ -33,15 +33,15 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+    const whereConditions = [{ username }, { email }]
+    
     const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }]
-      }
+      where: { OR: whereConditions }
     })
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: 'User with this email or username already exists' },
+        { success: false, message: 'User with this email, phone, or username already exists' },
         { status: 400 }
       )
     }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/'
     })
     

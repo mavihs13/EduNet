@@ -10,8 +10,8 @@ export const verifyPassword = async (password: string, hashedPassword: string) =
 }
 
 export const generateTokens = (userId: string) => {
-  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '15m' })
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' })
+  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '7d' })
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '30d' })
   return { accessToken, refreshToken }
 }
 

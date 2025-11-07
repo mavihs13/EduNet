@@ -11,16 +11,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Username and password required' }, { status: 400 })
     }
 
-    // Check if input is email or username
-    const isEmail = username.includes('@')
-    
-    const user = await prisma.user.findFirst({
-      where: isEmail ? { email: username } : { username: username },
+    // Login only with username
+    const user = await prisma.user.findUnique({
+      where: { username: username },
       include: { profile: true }
     })
 
-    if (!user || !(await verifyPassword(password, user.password))) {
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+    if (!user || !user.password || !(await verifyPassword(password, user.password))) {
+      return NextResponse.json({ message: 'Invalid username or password' }, { status: 401 })
     }
 
     const { accessToken, refreshToken } = generateTokens(user.id)
@@ -39,7 +37,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/'
     })
     

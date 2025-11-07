@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink } from 'lucide-react'
+import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import CodeViewer from '@/components/CodeViewer'
 import Link from 'next/link'
@@ -31,22 +31,135 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [showComments, setShowComments] = useState<{[key: string]: boolean}>({})
   const [commentText, setCommentText] = useState<{[key: string]: string}>({})
   const [showShareMenu, setShowShareMenu] = useState<{[key: string]: boolean}>({})
+  const [showPostMenu, setShowPostMenu] = useState<{[key: string]: boolean}>({})
+  const [editingPost, setEditingPost] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [storyGroups, setStoryGroups] = useState<any[]>([])
+  const [showStoryViewer, setShowStoryViewer] = useState(false)
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
+  const [currentUserIndex, setCurrentUserIndex] = useState(0)
+  const [showCreateStory, setShowCreateStory] = useState(false)
+  const [storyContent, setStoryContent] = useState('')
+  const [storyMedia, setStoryMedia] = useState('')
+  const [storyType, setStoryType] = useState<'text' | 'image'>('text')
+  const [uploadingStory, setUploadingStory] = useState(false)
+  const [showSearchModal, setShowSearchModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
 
   useEffect(() => {
-    // Prevent back button from going to login
-    const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault()
-      window.history.pushState(null, '', window.location.pathname)
-    }
-
-    // Push initial state
-    window.history.pushState(null, '', window.location.pathname)
-    window.addEventListener('popstate', handlePopState)
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
+    // Fetch stories
+    fetchStories()
   }, [])
+
+  const fetchStories = async () => {
+    try {
+      const res = await fetch('/api/stories')
+      if (res.ok) {
+        const data = await res.json()
+        setStoryGroups(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch stories:', error)
+    }
+  }
+
+  const handleCreateStory = async () => {
+    try {
+      const res = await fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: storyContent,
+          mediaUrl: storyMedia,
+          mediaType: storyType === 'image' ? 'image' : null
+        })
+      })
+
+      if (res.ok) {
+        setShowCreateStory(false)
+        setStoryContent('')
+        setStoryMedia('')
+        setStoryType('text')
+        fetchStories()
+        showNotification('Story created! 📸', 'success')
+      }
+    } catch (error) {
+      showNotification('Failed to create story', 'error')
+    }
+  }
+
+  const handleStoryMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingStory(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+
+      const res = await fetch('/api/upload/avatar', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setStoryMedia(data.avatarUrl)
+        setStoryType('image')
+      }
+    } catch (error) {
+      showNotification('Failed to upload media', 'error')
+    } finally {
+      setUploadingStory(false)
+    }
+  }
+
+  const openStoryViewer = (userIndex: number) => {
+    setCurrentUserIndex(userIndex)
+    setCurrentStoryIndex(0)
+    setShowStoryViewer(true)
+    markStoryAsViewed(storyGroups[userIndex].stories[0].id)
+  }
+
+  const markStoryAsViewed = async (storyId: string) => {
+    try {
+      await fetch('/api/stories/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId })
+      })
+    } catch (error) {
+      console.error('Failed to mark story as viewed:', error)
+    }
+  }
+
+  const nextStory = () => {
+    const currentGroup = storyGroups[currentUserIndex]
+    if (currentStoryIndex < currentGroup.stories.length - 1) {
+      const newIndex = currentStoryIndex + 1
+      setCurrentStoryIndex(newIndex)
+      markStoryAsViewed(currentGroup.stories[newIndex].id)
+    } else if (currentUserIndex < storyGroups.length - 1) {
+      const newUserIndex = currentUserIndex + 1
+      setCurrentUserIndex(newUserIndex)
+      setCurrentStoryIndex(0)
+      markStoryAsViewed(storyGroups[newUserIndex].stories[0].id)
+    } else {
+      setShowStoryViewer(false)
+    }
+  }
+
+  const prevStory = () => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1)
+    } else if (currentUserIndex > 0) {
+      const newUserIndex = currentUserIndex - 1
+      setCurrentUserIndex(newUserIndex)
+      setCurrentStoryIndex(storyGroups[newUserIndex].stories.length - 1)
+    }
+  }
 
   const handleLike = async (postId: string) => {
     try {
@@ -125,6 +238,9 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
     setShowComments({})
     setCommentText({})
     setShowShareMenu({})
+    setShowPostMenu({})
+    setEditingPost(null)
+    setEditContent('')
   }
 
   const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,6 +417,94 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
     }, 3000)
   }
 
+  const handleSavePost = async (postId: string) => {
+    try {
+      const res = await fetch('/api/posts/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setPosts(posts.map(post => {
+          if (post.id === postId) {
+            const isSaved = post.saves?.some((save: any) => save.userId === user.id)
+            const isOwnPost = post.user.id === user.id
+            return {
+              ...post,
+              saves: isSaved 
+                ? post.saves.filter((save: any) => save.userId !== user.id)
+                : [...(post.saves || []), { userId: user.id }],
+              _count: {
+                ...post._count,
+                saves: isOwnPost ? (post._count.saves || 0) : 
+                       isSaved ? (post._count.saves || 1) - 1 : (post._count.saves || 0) + 1
+              }
+            }
+          }
+          return post
+        }))
+        showNotification(data.saved ? 'Post saved! ⭐' : 'Post unsaved', 'success')
+      }
+    } catch (error) {
+      showNotification('Failed to save post', 'error')
+    }
+  }
+
+  const canEditPost = (createdAt: string) => {
+    const postTime = new Date(createdAt).getTime()
+    const now = new Date().getTime()
+    const thirtyMinutes = 30 * 60 * 1000
+    return (now - postTime) < thirtyMinutes
+  }
+
+  const handleEditPost = (post: any) => {
+    setEditingPost(post.id)
+    setEditContent(post.content || '')
+    setShowPostMenu(prev => ({ ...prev, [post.id]: false }))
+  }
+
+  const saveEditPost = async (postId: string) => {
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent })
+      })
+      
+      if (res.ok) {
+        setPosts(posts.map(post => 
+          post.id === postId ? { ...post, content: editContent } : post
+        ))
+        setEditingPost(null)
+        setEditContent('')
+        showNotification('Post updated successfully! ✏️', 'success')
+      }
+    } catch (error) {
+      showNotification('Failed to update post', 'error')
+    }
+  }
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return
+    
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE'
+      })
+      
+      if (res.ok) {
+        setPosts(posts.filter(post => post.id !== postId))
+        showNotification('Post deleted successfully! 🗑️', 'success')
+      }
+    } catch (error) {
+      showNotification('Failed to delete post', 'error')
+    }
+    
+    setShowPostMenu(prev => ({ ...prev, [postId]: false }))
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       {/* Header */}
@@ -319,11 +523,14 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
             <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white">
               <Home className="h-6 w-6" />
             </Button>
-            <Link href="/search">
-              <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white relative">
-                <Search className="h-6 w-6" />
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowSearchModal(true)}
+              className="hover:bg-white/10 text-white relative"
+            >
+              <Search className="h-6 w-6" />
+            </Button>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -357,23 +564,53 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
         {/* Stories Section */}
         <div className="mb-8">
           <div className="flex space-x-4 overflow-x-auto pb-4">
+            {/* Your Story */}
             <div className="flex-shrink-0 text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center mb-2 cursor-pointer hover:scale-110 transition-transform">
-                <span className="text-2xl">➕</span>
-              </div>
-              <p className="text-xs text-white/80">Your Story</p>
-            </div>
-            {posts.slice(0, 6).map((post, idx) => (
-              <div key={idx} className="flex-shrink-0 text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full p-0.5 cursor-pointer hover:scale-110 transition-transform">
-                  <Avatar className="w-full h-full">
-                    <AvatarImage src={post.user.profile?.avatar} />
+              {storyGroups.find(g => g.user.id === user.id) ? (
+                <button
+                  onClick={() => openStoryViewer(storyGroups.findIndex(g => g.user.id === user.id))}
+                  className="relative w-16 h-16 rounded-full p-0.5 cursor-pointer hover:scale-110 transition-transform bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500"
+                >
+                  <Avatar className="w-full h-full border-2 border-black">
+                    <AvatarImage src={user.profile?.avatar} />
                     <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                      {post.user.profile?.name?.[0] || post.user.username[0]}
+                      {user.profile?.name?.[0] || user.username[0]}
                     </AvatarFallback>
                   </Avatar>
-                </div>
-                <p className="text-xs text-white/80 mt-1 truncate w-16">{post.user.username}</p>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-black flex items-center justify-center">
+                    <Plus className="h-3 w-3 text-white" />
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowCreateStory(true)}
+                  className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center mb-2 cursor-pointer hover:scale-110 transition-transform"
+                >
+                  <Plus className="h-8 w-8 text-white" />
+                </button>
+              )}
+              <p className="text-xs text-white/80 mt-1">Your Story</p>
+            </div>
+            
+            {/* Friends Stories */}
+            {storyGroups.filter(g => g.user.id !== user.id).map((group, index) => (
+              <div key={group.user.id} className="flex-shrink-0 text-center">
+                <button
+                  onClick={() => openStoryViewer(storyGroups.findIndex(g => g.user.id === group.user.id))}
+                  className={`w-16 h-16 rounded-full p-0.5 cursor-pointer hover:scale-110 transition-transform ${
+                    group.hasUnviewed 
+                      ? 'bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500' 
+                      : 'bg-gray-600'
+                  }`}
+                >
+                  <Avatar className="w-full h-full border-2 border-black">
+                    <AvatarImage src={group.user.profile?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
+                      {group.user.profile?.name?.[0] || group.user.username[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+                <p className="text-xs text-white/80 mt-1 truncate w-16">{group.user.profile?.name || group.user.username}</p>
               </div>
             ))}
           </div>
@@ -397,15 +634,70 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                     <p className="text-sm text-purple-300">@{post.user.username} • {formatTimeAgo(new Date(post.createdAt))}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
+                {post.user.id === user.id && (
+                  <div className="relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setShowPostMenu(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                      className="hover:bg-white/10 text-white"
+                    >
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                    {showPostMenu[post.id] && (
+                      <div className="absolute top-10 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl p-2 z-10 min-w-[160px] shadow-2xl">
+                        {canEditPost(post.createdAt) && (
+                          <button
+                            onClick={() => handleEditPost(post)}
+                            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-blue-50 rounded-xl transition-colors"
+                          >
+                            <Edit3 className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm font-medium">Edit Post</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <span className="text-sm font-medium">Delete Post</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Post Content */}
               <div className="px-6 pb-4">
-                {post.content && (
-                  <p className="text-white mb-4 leading-relaxed text-lg">{post.content}</p>
+                {editingPost === post.id ? (
+                  <div className="mb-4">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full bg-black/30 border border-purple-400/30 rounded-2xl p-4 text-white placeholder:text-gray-400 resize-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                      rows={3}
+                    />
+                    <div className="flex space-x-2 mt-3">
+                      <Button 
+                        onClick={() => saveEditPost(post.id)}
+                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-4 py-2 rounded-xl"
+                      >
+                        Save
+                      </Button>
+                      <Button 
+                        onClick={() => setEditingPost(null)}
+                        variant="outline"
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700/50 px-4 py-2 rounded-xl"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  post.content && (
+                    <p className="text-white mb-4 leading-relaxed text-lg">{post.content}</p>
+                  )
                 )}
                 
                 {post.tags && (
@@ -636,7 +928,14 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleSavePost(post.id)}
+                      className="flex items-center space-x-1 hover:scale-110 transition-transform"
+                    >
+                      <Star className="h-5 w-5 text-gray-400 hover:text-yellow-400" />
+                      <span className="text-xs text-gray-400">0</span>
+                    </button>
                     <span className="text-xs text-purple-300">🔥 {post._count.likes * 3 + 15}K views</span>
                   </div>
                 </div>
@@ -1036,6 +1335,301 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
           </div>
         </div>
       )}
+
+      {/* Create Story Modal */}
+      {showCreateStory && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Create Story</h2>
+              <button onClick={() => setShowCreateStory(false)}>
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setStoryType('text')}
+                  className={`flex-1 p-3 rounded-xl flex items-center justify-center space-x-2 ${
+                    storyType === 'text' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100'
+                  }`}
+                >
+                  <Type className="h-5 w-5" />
+                  <span>Text</span>
+                </button>
+                <label className={`flex-1 p-3 rounded-xl flex items-center justify-center space-x-2 cursor-pointer ${
+                  storyType === 'image' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100'
+                }`}>
+                  <Camera className="h-5 w-5" />
+                  <span>{uploadingStory ? 'Uploading...' : 'Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleStoryMediaUpload}
+                    className="hidden"
+                    disabled={uploadingStory}
+                  />
+                </label>
+              </div>
+
+              {storyType === 'image' && storyMedia && (
+                <div className="relative">
+                  <img src={storyMedia} alt="Story" className="w-full h-48 object-cover rounded-xl" />
+                </div>
+              )}
+
+              <textarea
+                value={storyContent}
+                onChange={(e) => setStoryContent(e.target.value)}
+                placeholder={storyType === 'text' ? 'Share something...' : 'Add a caption...'}
+                className="w-full p-3 border rounded-xl resize-none h-24 focus:outline-none focus:border-purple-400"
+              />
+
+              <Button
+                onClick={handleCreateStory}
+                disabled={!storyContent.trim() && !storyMedia}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white"
+              >
+                Share Story
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Story Viewer */}
+      {showStoryViewer && storyGroups[currentUserIndex]?.stories[currentStoryIndex] && (
+        (() => {
+          const currentStory = storyGroups[currentUserIndex].stories[currentStoryIndex]
+          return (
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+          <div className="relative w-full h-full max-w-md mx-auto">
+            {/* Progress bars */}
+            <div className="absolute top-4 left-4 right-4 flex space-x-1 z-10">
+              {storyGroups[currentUserIndex].stories.map((_, index) => (
+                <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full bg-white transition-all duration-300 ${
+                      index < currentStoryIndex ? 'w-full' : 
+                      index === currentStoryIndex ? 'w-full animate-pulse' : 'w-0'
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Header */}
+            <div className="absolute top-12 left-4 right-4 flex items-center justify-between z-10">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={storyGroups[currentUserIndex].user.profile?.avatar} />
+                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
+                    {storyGroups[currentUserIndex].user.profile?.name?.[0] || storyGroups[currentUserIndex].user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-white font-medium text-sm">
+                    {storyGroups[currentUserIndex].user.profile?.name || storyGroups[currentUserIndex].user.username}
+                  </p>
+                  <p className="text-white/70 text-xs">
+                    {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowStoryViewer(false)} className="text-white">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Story Content */}
+            <div className="w-full h-full flex items-center justify-center">
+              {currentStory.mediaUrl ? (
+                <img 
+                  src={currentStory.mediaUrl} 
+                  alt="Story" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center p-8">
+                  <p className="text-white text-xl text-center font-medium">
+                    {currentStory.content}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation */}
+            <button 
+              onClick={prevStory}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
+            >
+              <ChevronLeft className="h-8 w-8" />
+            </button>
+            <button 
+              onClick={nextStory}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
+            >
+              <ChevronRight className="h-8 w-8" />
+            </button>
+
+            {/* Views count */}
+            <div className="absolute bottom-4 left-4 flex items-center space-x-1 text-white/70">
+              <Eye className="h-4 w-4" />
+              <span className="text-sm">{currentStory._count.views}</span>
+            </div>
+
+            {/* Tap areas for navigation */}
+            <div className="absolute inset-0 flex">
+              <div className="w-1/2 h-full" onClick={prevStory} />
+              <div className="w-1/2 h-full" onClick={nextStory} />
+            </div>
+          </div>
+        </div>
+        )
+        })()
+      )}
+
+      {/* Search Modal */}
+      {showSearchModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-20">
+          <div className="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 rounded-3xl border border-purple-400/30 w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl">
+            {/* Search Header */}
+            <div className="flex items-center justify-between p-6 border-b border-purple-400/20">
+              <h2 className="text-xl font-bold text-white">Search Users</h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowSearchModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-6 border-b border-purple-400/20">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search users by name, username, or skills..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    handleSearch(e.target.value)
+                  }}
+                  className="w-full bg-black/30 border border-purple-400/30 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Search Results */}
+            <div className="max-h-96 overflow-y-auto p-6">
+              {searchLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+                  <p className="text-gray-400 mt-2">Searching...</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-4">
+                  {searchResults.map((targetUser) => (
+                    <div key={targetUser.id} className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
+                            <AvatarImage src={targetUser.profile?.avatar} />
+                            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                              {targetUser.profile?.name?.[0] || targetUser.username[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-bold text-white">{targetUser.profile?.name || targetUser.username}</h3>
+                            <p className="text-purple-300 text-sm">@{targetUser.username}</p>
+                            {targetUser.profile?.bio && (
+                              <p className="text-gray-300 text-sm mt-1">{targetUser.profile.bio}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          onClick={() => toggleFollow(targetUser.id)}
+                          className={targetUser.isFollowedByCurrentUser ? 
+                            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
+                            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                          }
+                        >
+                          {targetUser.isFollowedByCurrentUser ? 'Following' : 'Follow'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : searchTerm ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No users found for "{searchTerm}"</p>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">Start typing to search for users</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+
+  async function handleSearch(query: string) {
+    if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    setSearchLoading(true)
+    try {
+      const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`)
+      if (res.ok) {
+        const users = await res.json()
+        // Add follow status for each user
+        const usersWithFollowStatus = await Promise.all(
+          users.map(async (targetUser: any) => {
+            const followRes = await fetch(`/api/follow/status?userId=${targetUser.id}`)
+            const followData = followRes.ok ? await followRes.json() : { isFollowing: false }
+            return {
+              ...targetUser,
+              isFollowedByCurrentUser: followData.isFollowing
+            }
+          })
+        )
+        setSearchResults(usersWithFollowStatus)
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  async function toggleFollow(userId: string) {
+    try {
+      const res = await fetch('/api/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followingId: userId })
+      })
+      
+      if (res.ok) {
+        // Update search results
+        setSearchResults(prev => prev.map(user => 
+          user.id === userId 
+            ? { ...user, isFollowedByCurrentUser: !user.isFollowedByCurrentUser }
+            : user
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to toggle follow:', error)
+    }
+  }
 }

@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Heart, MessageCircle, CheckCircle, Github } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -40,6 +39,13 @@ export default function RegisterPage() {
       confirmPassword: formData.confirmPassword.trim()
     }
     
+    // Validate email is provided
+    if (!trimmedData.email) {
+      setMessage('Email is required for account recovery')
+      setMessageType('error')
+      return
+    }
+    
     if (trimmedData.password !== trimmedData.confirmPassword) {
       setMessage('Passwords do not match')
       setMessageType('error')
@@ -69,6 +75,8 @@ export default function RegisterPage() {
       console.log('Registration response:', data)
 
       if (res.ok && data.success) {
+        // Save username for future autofill
+        localStorage.setItem('rememberedUsername', trimmedData.username)
         setMessage('Account created successfully! Redirecting...')
         setMessageType('success')
         setTimeout(() => window.location.href = '/feed', 500)
@@ -86,101 +94,178 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-blue-900 to-purple-900 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10"></div>
-      </div>
-      
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-        <CardHeader className="text-center pb-6">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-r from-emerald-500 to-blue-600 p-3 rounded-2xl shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-              </svg>
+    <div className="min-h-screen bg-black flex">
+      {/* Left Section - 40% */}
+      <div className="w-2/5 flex items-center justify-center relative overflow-hidden">
+        {/* Background Images Collage */}
+        <div className="relative w-80 h-96">
+          {/* Main Images */}
+          <div className="absolute top-0 left-0 w-48 h-64 rounded-2xl overflow-hidden shadow-2xl transform rotate-12 hover:rotate-6 transition-transform duration-500">
+            <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <span className="text-white text-6xl">📚</span>
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
-            Join EduNet
-          </CardTitle>
-          <p className="text-white/70 mt-2">Start your educational journey today</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
-            <Input
+          
+          <div className="absolute top-8 right-0 w-40 h-56 rounded-2xl overflow-hidden shadow-2xl transform -rotate-6 hover:rotate-0 transition-transform duration-500">
+            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <span className="text-white text-5xl">💻</span>
+            </div>
+          </div>
+          
+          <div className="absolute bottom-0 left-8 w-44 h-60 rounded-2xl overflow-hidden shadow-2xl transform rotate-3 hover:-rotate-3 transition-transform duration-500">
+            <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <span className="text-white text-5xl">🚀</span>
+            </div>
+          </div>
+          
+          <div className="absolute bottom-4 right-4 w-36 h-48 rounded-2xl overflow-hidden shadow-2xl transform -rotate-12 hover:-rotate-6 transition-transform duration-500">
+            <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+              <span className="text-white text-4xl">🎯</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Floating UI Elements */}
+        <Heart className="absolute top-20 left-20 w-8 h-8 text-red-500 animate-pulse" fill="currentColor" />
+        <MessageCircle className="absolute top-32 right-16 w-6 h-6 text-blue-400 animate-bounce" />
+        <CheckCircle className="absolute bottom-32 left-12 w-7 h-7 text-green-500 animate-pulse" fill="currentColor" />
+        <div className="absolute top-40 left-32 text-2xl animate-bounce">🔥</div>
+        <div className="absolute bottom-40 right-20 text-2xl animate-pulse">💜</div>
+        
+        {/* Rainbow Profile Ring */}
+        <div className="absolute top-16 right-32 w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-1 animate-spin-slow">
+          <div className="w-full h-full bg-black rounded-full flex items-center justify-center">
+            <span className="text-white text-xl">👤</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right Section - 60% */}
+      <div className="w-3/5 flex items-center justify-center">
+        <div className="w-full max-w-sm">
+          {/* EduNet Logo */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-white" style={{ fontFamily: 'Billabong, cursive' }}>
+              EduNet
+            </h1>
+          </div>
+          
+          {/* Signup Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
               type="email"
-              name="email"
               placeholder="Email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              autoComplete="email"
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-emerald-400 transition-all duration-300"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
             />
-            <Input
+            
+
+            
+            <input
               type="text"
-              name="username"
               placeholder="Username"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
-              autoComplete="username"
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-emerald-400 transition-all duration-300"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
             />
-            <Input
+            
+            <input
               type="password"
-              name="password"
               placeholder="Password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              autoComplete="new-password"
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-emerald-400 transition-all duration-300"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
             />
-            <div>
-              <Input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                required
-                autoComplete="new-password"
-                className={`bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 transition-all duration-300 ${
-                  !passwordMatch ? 'border-red-400 focus:border-red-400' : 'focus:border-emerald-400'
-                }`}
-              />
-              {!passwordMatch && formData.confirmPassword && (
-                <p className="text-red-400 text-sm mt-1">Passwords do not match</p>
-              )}
-            </div>
+            
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              required
+              className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-400 focus:outline-none transition-colors ${
+                !passwordMatch ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-gray-500'
+              }`}
+            />
+            {!passwordMatch && formData.confirmPassword && (
+              <p className="text-red-400 text-sm">Passwords do not match</p>
+            )}
+            
             {message && (
-              <div className={`p-3 rounded-lg text-sm ${messageType === 'success' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
+              <div className={`p-3 rounded text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}>
                 {message}
               </div>
             )}
+            
             <button
               type="submit"
               disabled={loading || !passwordMatch}
-              className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded transition-colors disabled:opacity-50"
+              style={{ backgroundColor: '#4e8fef' }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <span className="relative z-10">
-                {loading ? 'Creating account...' : 'Create Account'}
-              </span>
+              {loading ? 'Creating account...' : 'Sign up'}
             </button>
           </form>
-          <div className="mt-6 text-center">
-            <p className="text-sm text-white/70">
-              Already have an account?{' '}
-              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors duration-200">
-                Sign in
-              </Link>
-            </p>
+          
+          {/* OR Divider */}
+          <div className="flex items-center my-6">
+            <div className="flex-1 h-px bg-gray-700"></div>
+            <span className="px-4 text-gray-400 text-sm font-semibold">OR</span>
+            <div className="flex-1 h-px bg-gray-700"></div>
           </div>
-        </CardContent>
-      </Card>
+          
+          {/* GitHub Signup */}
+          <button 
+            onClick={() => signIn('github', { callbackUrl: '/feed' })}
+            className="w-full flex items-center justify-center space-x-2 py-3 text-gray-300 hover:text-white transition-colors border border-gray-700 rounded hover:border-gray-600"
+          >
+            <Github className="w-5 h-5" />
+            <span className="font-semibold">Sign up with GitHub</span>
+          </button>
+          
+          {/* Sign In Link */}
+          <div className="text-center mt-8 pt-8 border-t border-gray-800">
+            <span className="text-gray-400 text-sm">
+              Have an account?{' '}
+              <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
+                Log in
+              </Link>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="absolute bottom-0 left-0 right-0 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-wrap justify-center space-x-4 text-xs text-gray-500 mb-4">
+            <a href="#" className="hover:underline">Mavi</a>
+            <a href="#" className="hover:underline">About</a>
+            <a href="#" className="hover:underline">Blog</a>
+            <a href="#" className="hover:underline">Jobs</a>
+            <a href="#" className="hover:underline">Help</a>
+            <a href="#" className="hover:underline">API</a>
+            <a href="#" className="hover:underline">Privacy</a>
+            <a href="#" className="hover:underline">Terms</a>
+            <a href="#" className="hover:underline">Locations</a>
+            <a href="#" className="hover:underline">EduNet Lite</a>
+            <a href="#" className="hover:underline">Mavi AI</a>
+            <a href="#" className="hover:underline">maviThreads</a>
+            <a href="#" className="hover:underline">Contact</a>
+            <a href="#" className="hover:underline">Mavi Verified</a>
+          </div>
+          <div className="flex justify-center items-center space-x-4 text-xs text-gray-500">
+            <span>© 2025 EduNet from Mavi</span>
+            <select className="bg-transparent border-none text-gray-500 text-xs">
+              <option>English</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

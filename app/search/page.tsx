@@ -31,21 +31,27 @@ export default async function SearchPage() {
       NOT: { id: user.id }
     },
     include: {
-      profile: true,
-      sentFriendRequests: {
-        where: { receiverId: user.id }
-      },
-      receivedFriendRequests: {
-        where: { senderId: user.id }
-      },
-      friendships1: {
-        where: { user2Id: user.id }
-      },
-      friendships2: {
-        where: { user1Id: user.id }
-      }
+      profile: true
     }
   })
 
-  return <SearchClient user={user} users={users} />
+  // Get follow status for each user
+  const usersWithFollowStatus = await Promise.all(
+    users.map(async (targetUser) => {
+      const isFollowing = await prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: user.id,
+            followingId: targetUser.id
+          }
+        }
+      })
+      return {
+        ...targetUser,
+        isFollowedByCurrentUser: !!isFollowing
+      }
+    })
+  )
+
+  return <SearchClient user={user} users={usersWithFollowStatus} />
 }

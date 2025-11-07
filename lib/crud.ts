@@ -14,6 +14,10 @@ export const userCrud = {
     return await prisma.user.findUnique({ where: { username }, include: { profile: true } })
   },
   
+  findByPhone: async (phone: string) => {
+    return await prisma.user.findUnique({ where: { phone }, include: { profile: true } })
+  },
+  
   findById: async (id: string) => {
     return await prisma.user.findUnique({ where: { id }, include: { profile: true } })
   }
@@ -231,6 +235,44 @@ export const profileCrud = {
   
   findByUserId: async (userId: string) => {
     return await prisma.profile.findUnique({ where: { userId } })
+  }
+}
+
+// Follow CRUD
+export const followCrud = {
+  toggle: async (followerId: string, followingId: string) => {
+    const existing = await prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId, followingId } }
+    })
+    
+    if (existing) {
+      await prisma.follow.delete({ where: { id: existing.id } })
+      return { following: false }
+    } else {
+      await prisma.follow.create({ data: { followerId, followingId } })
+      return { following: true }
+    }
+  },
+  
+  getFollowers: async (userId: string) => {
+    return await prisma.follow.findMany({
+      where: { followingId: userId },
+      include: { follower: { include: { profile: true } } }
+    })
+  },
+  
+  getFollowing: async (userId: string) => {
+    return await prisma.follow.findMany({
+      where: { followerId: userId },
+      include: { following: { include: { profile: true } } }
+    })
+  },
+  
+  isFollowing: async (followerId: string, followingId: string) => {
+    const follow = await prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId, followingId } }
+    })
+    return !!follow
   }
 }
 

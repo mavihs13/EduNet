@@ -25,18 +25,18 @@ export default function SearchClient({ user, users }: SearchClientProps) {
     setFilteredUsers(filtered)
   }
 
-  const sendFriendRequest = async (userId: string) => {
+  const toggleFollow = async (userId: string) => {
     try {
-      const res = await fetch('/api/friends/requests/send', {
+      const res = await fetch('/api/follow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiverId: userId })
+        body: JSON.stringify({ followingId: userId })
       })
       if (res.ok) {
         window.location.reload()
       }
     } catch (error) {
-      console.error('Failed to send friend request:', error)
+      console.error('Failed to toggle follow:', error)
     }
   }
 
@@ -55,15 +55,8 @@ export default function SearchClient({ user, users }: SearchClientProps) {
     }
   }
 
-  const getUserStatus = (targetUser: any) => {
-    const sentRequest = targetUser.receivedFriendRequests.find((req: any) => req.senderId === user.id)
-    const receivedRequest = targetUser.sentFriendRequests.find((req: any) => req.receiverId === user.id)
-    const isFriend = targetUser.friendships1.length > 0 || targetUser.friendships2.length > 0
-
-    if (isFriend) return 'friend'
-    if (sentRequest) return 'pending'
-    if (receivedRequest) return 'accept'
-    return 'none'
+  const isFollowing = (targetUser: any) => {
+    return targetUser.isFollowedByCurrentUser || false
   }
 
   const handleLogout = async () => {
@@ -157,37 +150,21 @@ export default function SearchClient({ user, users }: SearchClientProps) {
                   </div>
                   
                   <div>
-                    {status === 'none' && (
+                    {isFollowing(targetUser) ? (
                       <Button 
-                        onClick={() => sendFriendRequest(targetUser.id)}
+                        onClick={() => toggleFollow(targetUser.id)}
+                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white"
+                      >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Following
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => toggleFollow(targetUser.id)}
                         className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
                       >
                         <UserPlus className="h-4 w-4 mr-2" />
                         Follow
-                      </Button>
-                    )}
-                    {status === 'pending' && (
-                      <Button disabled className="bg-gray-600 text-gray-300">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Pending
-                      </Button>
-                    )}
-                    {status === 'accept' && (
-                      <Button 
-                        onClick={() => {
-                          const request = targetUser.sentFriendRequests.find((req: any) => req.receiverId === user.id)
-                          if (request) acceptFriendRequest(request.id)
-                        }}
-                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white"
-                      >
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        Accept
-                      </Button>
-                    )}
-                    {status === 'friend' && (
-                      <Button disabled className="bg-gradient-to-r from-green-500 to-blue-500 text-white">
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        Following
                       </Button>
                     )}
                   </div>
