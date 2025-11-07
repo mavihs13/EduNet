@@ -2,9 +2,9 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import SearchClient from './SearchClient'
+import NotificationsClient from './NotificationsClient'
 
-export default async function SearchPage() {
+export default async function NotificationsPage() {
   const cookieStore = cookies()
   const token = cookieStore.get('token')?.value
 
@@ -26,26 +26,15 @@ export default async function SearchPage() {
     redirect('/login')
   }
 
-  const users = await prisma.user.findMany({
-    where: {
-      NOT: { id: user.id }
-    },
+  const friendRequests = await prisma.friendRequest.findMany({
+    where: { receiverId: user.id },
     include: {
-      profile: true,
-      sentFriendRequests: {
-        where: { receiverId: user.id }
-      },
-      receivedFriendRequests: {
-        where: { senderId: user.id }
-      },
-      friendships1: {
-        where: { user2Id: user.id }
-      },
-      friendships2: {
-        where: { user1Id: user.id }
+      sender: {
+        include: { profile: true }
       }
-    }
+    },
+    orderBy: { createdAt: 'desc' }
   })
 
-  return <SearchClient user={user} users={users} />
+  return <NotificationsClient user={user} friendRequests={friendRequests} />
 }

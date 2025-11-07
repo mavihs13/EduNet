@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 })
     }
 
-    const { content, code, language, tags } = await request.json()
+    const { content, code, language, tags, pollQuestion, pollOptions, pollDuration } = await request.json()
 
     const post = await prisma.post.create({
       data: {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         content,
         code,
         language,
-        tags: tags || [],
+        tags
       },
       include: {
         user: {
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(post)
   } catch (error) {
+    console.error('Post creation error:', error)
     return NextResponse.json({ message: 'Failed to create post' }, { status: 500 })
   }
 }
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
         user: {
           include: { profile: true }
         },
+
         likes: true,
         comments: {
           include: {

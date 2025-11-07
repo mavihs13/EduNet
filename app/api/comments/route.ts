@@ -17,22 +17,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 })
     }
 
-    const { requestId } = await request.json()
+    const { postId, content } = await request.json()
 
-    const friendRequest = await prisma.friendRequest.findUnique({
-      where: { id: requestId }
+    const comment = await prisma.comment.create({
+      data: {
+        postId,
+        userId: payload.userId,
+        content
+      },
+      include: {
+        user: {
+          include: { profile: true }
+        }
+      }
     })
 
-    if (!friendRequest || friendRequest.receiverId !== payload.userId) {
-      return NextResponse.json({ message: 'Friend request not found' }, { status: 404 })
-    }
-
-    await prisma.friendRequest.delete({
-      where: { id: requestId }
-    })
-
-    return NextResponse.json({ message: 'Friend request rejected' })
+    return NextResponse.json(comment)
   } catch (error) {
-    return NextResponse.json({ message: 'Failed to reject friend request' }, { status: 500 })
+    return NextResponse.json({ message: 'Failed to create comment' }, { status: 500 })
   }
 }
