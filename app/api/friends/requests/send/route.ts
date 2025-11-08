@@ -19,46 +19,24 @@ export async function POST(request: NextRequest) {
 
     const { receiverId } = await request.json()
 
-    if (payload.userId === receiverId) {
-      return NextResponse.json({ message: 'Cannot send friend request to yourself' }, { status: 400 })
-    }
-
-    // Check if friendship already exists
-    const existingFriendship = await prisma.friendship.findFirst({
+    const existingRequest = await prisma.friendRequest.findUnique({
       where: {
-        OR: [
-          { user1Id: payload.userId, user2Id: receiverId },
-          { user1Id: receiverId, user2Id: payload.userId }
-        ]
-      }
-    })
-
-    if (existingFriendship) {
-      return NextResponse.json({ message: 'Already friends' }, { status: 400 })
-    }
-
-    // Check if request already exists
-    const existingRequest = await prisma.friendRequest.findFirst({
-      where: {
-        OR: [
-          { senderId: payload.userId, receiverId },
-          { senderId: receiverId, receiverId: payload.userId }
-        ]
+        senderId_receiverId: {
+          senderId: payload.userId,
+          receiverId
+        }
       }
     })
 
     if (existingRequest) {
-      return NextResponse.json({ message: 'Friend request already exists' }, { status: 400 })
+      return NextResponse.json({ message: 'Friend request already sent' }, { status: 400 })
     }
 
     const friendRequest = await prisma.friendRequest.create({
       data: {
         senderId: payload.userId,
         receiverId,
-      },
-      include: {
-        sender: { include: { profile: true } },
-        receiver: { include: { profile: true } }
+        status: 'pending'
       }
     })
 

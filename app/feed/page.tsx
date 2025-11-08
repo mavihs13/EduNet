@@ -1,10 +1,23 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
 import { verifyToken } from '@/lib/auth'
+import { authOptions } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import FeedClient from './FeedClient'
+import Stories from '@/components/Stories'
 
 async function getCurrentUser() {
+  // Check NextAuth session first
+  const session = await getServerSession(authOptions)
+  if (session?.user?.id) {
+    return await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { profile: true }
+    })
+  }
+
+  // Fallback to JWT token
   const cookieStore = cookies()
   const token = cookieStore.get('token')?.value
 
@@ -42,6 +55,7 @@ async function getFeedPosts(userId: string) {
         include: { profile: true }
       },
       likes: true,
+
       comments: {
         include: {
           user: { include: { profile: true } }

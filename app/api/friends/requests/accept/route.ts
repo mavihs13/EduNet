@@ -20,33 +20,24 @@ export async function POST(request: NextRequest) {
     const { requestId } = await request.json()
 
     const friendRequest = await prisma.friendRequest.findUnique({
-      where: { id: requestId },
-      include: {
-        sender: true,
-        receiver: true
-      }
+      where: { id: requestId }
     })
 
-    if (!friendRequest) {
+    if (!friendRequest || friendRequest.receiverId !== payload.userId) {
       return NextResponse.json({ message: 'Friend request not found' }, { status: 404 })
     }
 
-    if (friendRequest.receiverId !== payload.userId) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 })
-    }
-
-    // Create friendship
-    await prisma.friendship.create({
-      data: {
-        user1Id: friendRequest.senderId,
-        user2Id: friendRequest.receiverId,
-      }
-    })
-
-    // Delete friend request
-    await prisma.friendRequest.delete({
-      where: { id: requestId }
-    })
+    await prisma.$transaction([
+      prisma.friendship.create({
+        data: {
+          user1Id: friendRequest.senderId,
+          user2Id: friendRequest.receiverId
+        }
+      }),
+      prisma.friendRequest.delete({
+        where: { id: requestId }
+      })
+    ])
 
     return NextResponse.json({ message: 'Friend request accepted' })
   } catch (error) {
