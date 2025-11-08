@@ -73,19 +73,28 @@ export default function CodeEditor({
     viewRef.current = view
 
     return () => {
-      view.destroy()
+      if (view) {
+        view.destroy()
+      }
     }
-  }, [language, readOnly])
+  }, [language, readOnly, placeholder])
 
   useEffect(() => {
-    if (viewRef.current && viewRef.current.state.doc.toString() !== value) {
-      viewRef.current.dispatch({
-        changes: {
-          from: 0,
-          to: viewRef.current.state.doc.length,
-          insert: value,
-        },
-      })
+    if (viewRef.current) {
+      const currentValue = viewRef.current.state.doc.toString()
+      if (currentValue !== value) {
+        try {
+          viewRef.current.dispatch({
+            changes: {
+              from: 0,
+              to: viewRef.current.state.doc.length,
+              insert: value || '',
+            },
+          })
+        } catch (error) {
+          console.error('Error updating CodeMirror:', error)
+        }
+      }
     }
   }, [value])
 

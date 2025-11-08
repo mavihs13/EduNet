@@ -25,7 +25,7 @@ export const userCrud = {
 
 // Post CRUD
 export const postCrud = {
-  create: async (data: { userId: string; content?: string; code?: string; language?: string; tags?: string }) => {
+  create: async (data: { userId: string; content: string; tags?: string }) => {
     return await prisma.post.create({
       data,
       include: {
@@ -63,7 +63,7 @@ export const postCrud = {
     })
   },
   
-  update: async (id: string, data: { content?: string; code?: string; language?: string; tags?: string }) => {
+  update: async (id: string, data: { content?: string; tags?: string }) => {
     return await prisma.post.update({ where: { id }, data })
   },
   
@@ -75,16 +75,20 @@ export const postCrud = {
 // Like CRUD
 export const likeCrud = {
   toggle: async (postId: string, userId: string) => {
-    const existing = await prisma.like.findUnique({
-      where: { postId_userId: { postId, userId } }
-    })
-    
-    if (existing) {
-      await prisma.like.delete({ where: { id: existing.id } })
-      return { liked: false }
-    } else {
-      await prisma.like.create({ data: { postId, userId } })
-      return { liked: true }
+    try {
+      const existing = await prisma.like.findUnique({
+        where: { postId_userId: { postId, userId } }
+      })
+      
+      if (existing) {
+        await prisma.like.delete({ where: { id: existing.id } })
+        return { liked: false }
+      } else {
+        await prisma.like.create({ data: { postId, userId } })
+        return { liked: true }
+      }
+    } catch (error) {
+      throw new Error('Failed to toggle like')
     }
   }
 }
@@ -125,13 +129,18 @@ export const friendCrud = {
   
   acceptRequest: async (requestId: string) => {
     const request = await prisma.friendRequest.findUnique({ where: { id: requestId } })
-    if (!request) throw new Error('Request not found')
+    if (!request) return { error: 'Request not found' }
     
-    await prisma.friendship.create({
-      data: { user1Id: request.senderId, user2Id: request.receiverId }
-    })
-    
-    await prisma.friendRequest.delete({ where: { id: requestId } })
+    try {
+      await prisma.friendship.create({
+        data: { user1Id: request.senderId, user2Id: request.receiverId }
+      })
+      
+      await prisma.friendRequest.delete({ where: { id: requestId } })
+      return { success: true }
+    } catch (error) {
+      return { error: 'Failed to accept request' }
+    }
   },
   
   rejectRequest: async (requestId: string) => {
@@ -307,5 +316,59 @@ export const searchCrud = {
       take: limit,
       orderBy: { createdAt: 'desc' }
     })
+  }
+}
+
+// Coding Profile CRUD
+export const codingProfileCrud = {
+  upsert: async (userId: string, data: {
+    githubUsername?: string
+    leetcodeUsername?: string
+    codeforcesUsername?: string
+    hackerrankUsername?: string
+    totalProblems?: number
+    easyProblems?: number
+    mediumProblems?: number
+    hardProblems?: number
+    contestRating?: number
+    globalRank?: number
+    streak?: number
+    languages?: string
+    githubStats?: string
+  }) => {
+    return await prisma.codingProfile.upsert({
+      where: { userId },
+      update: data,
+      create: { userId, ...data }
+    })
+  },
+  
+  findByUserId: async (userId: string) => {
+    return await prisma.codingProfile.findUnique({ where: { userId } })
+  }
+}
+
+// Achievement CRUD
+export const achievementCrud = {
+  create: async (data: {
+    userId: string
+    title: string
+    description: string
+    type: string
+    badge?: string
+    isPublic?: boolean
+  }) => {
+    return await prisma.achievement.create({ data })
+  },
+  
+  findByUserId: async (userId: string, isPublic = true) => {
+    return await prisma.achievement.findMany({
+      where: { userId, isPublic },
+      orderBy: { earnedAt: 'desc' }
+    })
+  },
+  
+  delete: async (id: string) => {
+    return await prisma.achievement.delete({ where: { id } })
   }
 }

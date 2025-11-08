@@ -520,13 +520,23 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
             <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-semibold">Gen-Z</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white">
-              <Home className="h-6 w-6" />
-            </Button>
+            <Link href="/feed">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hover:bg-white/10 text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Home className="h-6 w-6" />
+              </Button>
+            </Link>
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => setShowSearchModal(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowSearchModal(true)
+              }}
               className="hover:bg-white/10 text-white relative"
             >
               <Search className="h-6 w-6" />
@@ -534,26 +544,58 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => setShowUploadModal(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowUploadModal(true)
+              }}
               className="hover:bg-white/10 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg hover:scale-110 transition-all duration-300 shadow-lg shadow-pink-500/25"
             >
               <Plus className="h-6 w-6" />
             </Button>
             <Link href="/notifications">
-              <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hover:bg-white/10 text-white relative"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Bell className="h-6 w-6" />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full animate-pulse"></span>
               </Button>
             </Link>
+            <Link href="/coding-profile">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hover:bg-white/10 text-white relative"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // Navigation will be handled by Link
+                }}
+              >
+                <Code className="h-6 w-6" />
+              </Button>
+            </Link>
             <Link href="/profile">
-              <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-purple-400 ring-offset-2 ring-offset-transparent hover:ring-pink-400 transition-all">
+              <Avatar 
+                className="h-9 w-9 cursor-pointer ring-2 ring-purple-400 ring-offset-2 ring-offset-transparent hover:ring-pink-400 transition-all"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <AvatarImage src={user.profile?.avatar} />
                 <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
                   {user.profile?.name?.[0] || user.username[0]}
                 </AvatarFallback>
               </Avatar>
             </Link>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-red-500/20 text-white">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleLogout()
+              }} 
+              className="hover:bg-red-500/20 text-white"
+            >
               <LogOut className="h-5 w-5" />
             </Button>
           </div>

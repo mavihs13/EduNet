@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')))
     const skip = (page - 1) * limit
 
     const posts = await prisma.post.findMany({
@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
         user: {
           include: { profile: true }
         },
-
         likes: true,
         comments: {
           include: {
@@ -81,6 +80,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(posts)
   } catch (error) {
+    console.error('Failed to fetch posts:', error)
     return NextResponse.json({ message: 'Failed to fetch posts' }, { status: 500 })
   }
 }

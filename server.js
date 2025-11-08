@@ -29,8 +29,11 @@ app.prepare().then(() => {
 
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000",
-      methods: ["GET", "POST"]
+      origin: process.env.NODE_ENV === 'production' 
+        ? process.env.NEXTAUTH_URL 
+        : "http://localhost:3000",
+      methods: ["GET", "POST"],
+      credentials: true
     }
   })
 
@@ -38,10 +41,26 @@ app.prepare().then(() => {
 
   const userSockets = new Map()
 
+  // Authentication middleware for Socket.IO
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token
+    if (!token) {
+      return next(new Error('Authentication error'))
+    }
+    // Add token validation here if needed
+    next()
+  })
+
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id)
 
     socket.on('join', (userId) => {
+      // Validate userId format
+      if (!userId || typeof userId !== 'string' || userId.length > 50) {
+        socket.emit('error', 'Invalid user ID')
+        return
+      }
+      
       userSockets.set(userId, socket.id)
       socket.userId = userId
       socket.join(`user_${userId}`)
@@ -53,6 +72,14 @@ app.prepare().then(() => {
     socket.on('send_message', async (data) => {
       const { receiverId, content } = data
       const senderId = socket.userId
+
+      // Validate input
+      if (!senderId || !receiverId || !content || 
+          typeof receiverId !== 'string' || typeof content !== 'string' ||
+          content.length > 1000 || receiverId.length > 50) {
+        socket.emit('error', 'Invalid message data')
+        return
+      }
 
       try {
         // Save message to database (you'll need to implement this)
@@ -83,6 +110,16 @@ app.prepare().then(() => {
 
     socket.on('send_notification', async (data) => {
       const { userId, type, title, content } = data
+
+      // Validate input
+      if (!userId || !type || !title || !content ||
+          typeof userId !== 'string' || typeof type !== 'string' ||
+          typeof title !== 'string' || typeof content !== 'string' ||
+          userId.length > 50 || type.length > 50 ||
+          title.length > 100 || content.length > 500) {
+        socket.emit('error', 'Invalid notification data')
+        return
+      }
 
       try {
         const notification = {

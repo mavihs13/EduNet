@@ -5,10 +5,11 @@ import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json()
+    const body = await request.json()
+    const { username, password } = body
 
-    if (!username || !password) {
-      return NextResponse.json({ message: 'Username and password required' }, { status: 400 })
+    if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ message: 'Valid username and password required' }, { status: 400 })
     }
 
     // Login only with username

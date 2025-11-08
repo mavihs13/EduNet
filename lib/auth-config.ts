@@ -6,19 +6,21 @@ import { prisma } from './prisma'
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      profile(profile) {
-        return {
-          id: profile.id.toString(),
-          name: profile.name || profile.login,
-          email: profile.email,
-          image: profile.avatar_url,
-          username: profile.login,
-        }
-      },
-    }),
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? [
+      GitHubProvider({
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        profile(profile) {
+          return {
+            id: profile.id.toString(),
+            name: profile.name || profile.login,
+            email: profile.email,
+            image: profile.avatar_url,
+            username: profile.login,
+          }
+        },
+      })
+    ] : []),
   ],
   callbacks: {
     async session({ session, user }) {
