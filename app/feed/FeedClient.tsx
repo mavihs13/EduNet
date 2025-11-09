@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye, Menu } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import CodeViewer from '@/components/CodeViewer'
 import Link from 'next/link'
@@ -47,11 +47,42 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [profileSuggestions, setProfileSuggestions] = useState<any[]>([])
 
   useEffect(() => {
     // Fetch stories
     fetchStories()
+    // Fetch unread notifications count
+    fetchUnreadNotifications()
+    // Fetch profile suggestions
+    fetchProfileSuggestions()
   }, [])
+
+  const fetchProfileSuggestions = async () => {
+    try {
+      const res = await fetch('/api/search/users?suggestions=true')
+      if (res.ok) {
+        const users = await res.json()
+        setProfileSuggestions(users)
+      }
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error)
+    }
+  }
+
+  const fetchUnreadNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications?unreadOnly=true')
+      if (res.ok) {
+        const data = await res.json()
+        setUnreadNotifications(data.count || 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+    }
+  }
 
   const fetchStories = async () => {
     try {
@@ -168,6 +199,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       })
       
       if (res.ok) {
+        const data = await res.json()
         setPosts(posts.map(post => {
           if (post.id === postId) {
             const isLiked = post.likes.some((like: any) => like.userId === user.id)
@@ -184,6 +216,11 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
           }
           return post
         }))
+        
+        // Update notification count if someone liked our post
+        if (data.liked && data.notificationCreated) {
+          fetchUnreadNotifications()
+        }
       }
     } catch (error) {
       console.error('Failed to like post:', error)
@@ -345,18 +382,23 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       })
       
       if (res.ok) {
-        const newComment = await res.json()
+        const data = await res.json()
         setPosts(posts.map(post => {
           if (post.id === postId) {
             return {
               ...post,
-              comments: [newComment, ...post.comments],
+              comments: [data.comment, ...post.comments],
               _count: { ...post._count, comments: post._count.comments + 1 }
             }
           }
           return post
         }))
         setCommentText(prev => ({ ...prev, [postId]: '' }))
+        
+        // Update notification count if we commented on someone's post
+        if (data.notificationCreated) {
+          fetchUnreadNotifications()
+        }
       }
     } catch (error) {
       console.error('Failed to add comment:', error)
@@ -510,7 +552,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       {/* Header */}
       <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-3 hover:scale-105 transition-transform cursor-pointer">
             <div className="w-10 h-10 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-lg">📚</span>
             </div>
@@ -518,7 +560,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               EduNet
             </h1>
             <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-semibold">Gen-Z</span>
-          </div>
+          </Link>
           <div className="flex items-center space-x-4">
             <Link href="/feed">
               <Button 
@@ -557,10 +599,17 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                 variant="ghost" 
                 size="icon" 
                 className="hover:bg-white/10 text-white relative"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setUnreadNotifications(0)
+                }}
               >
                 <Bell className="h-6 w-6" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full animate-pulse"></span>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link href="/coding-profile">
@@ -592,11 +641,11 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               size="icon" 
               onClick={(e) => {
                 e.stopPropagation()
-                handleLogout()
+                setShowHamburgerMenu(!showHamburgerMenu)
               }} 
-              className="hover:bg-red-500/20 text-white"
+              className="hover:bg-white/10 text-white"
             >
-              <LogOut className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </Button>
           </div>
         </div>
@@ -1576,35 +1625,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               ) : searchResults.length > 0 ? (
                 <div className="space-y-4">
                   {searchResults.map((targetUser) => (
-                    <div key={targetUser.id} className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
-                            <AvatarImage src={targetUser.profile?.avatar} />
-                            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-                              {targetUser.profile?.name?.[0] || targetUser.username[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-bold text-white">{targetUser.profile?.name || targetUser.username}</h3>
-                            <p className="text-purple-300 text-sm">@{targetUser.username}</p>
-                            {targetUser.profile?.bio && (
-                              <p className="text-gray-300 text-sm mt-1">{targetUser.profile.bio}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          onClick={() => toggleFollow(targetUser.id)}
-                          className={targetUser.isFollowedByCurrentUser ? 
-                            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
-                            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-                          }
-                        >
-                          {targetUser.isFollowedByCurrentUser ? 'Following' : 'Follow'}
-                        </Button>
-                      </div>
-                    </div>
+                    <UserCard key={targetUser.id} user={targetUser} onFollow={toggleFollow} />
                   ))}
                 </div>
               ) : searchTerm ? (
@@ -1612,14 +1633,107 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                   <p className="text-gray-400">No users found for "{searchTerm}"</p>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">Start typing to search for users</p>
+                <div>
+                  <h3 className="text-white font-semibold mb-4 flex items-center">
+                    <Users className="h-5 w-5 mr-2 text-purple-400" />
+                    Suggested for you
+                  </h3>
+                  <div className="space-y-4">
+                    {profileSuggestions.map((targetUser) => (
+                      <UserCard key={targetUser.id} user={targetUser} onFollow={toggleFollow} showStats />
+                    ))}
+                  </div>
+                  {profileSuggestions.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400">No suggestions available</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Right Side Panel */}
+      {showHamburgerMenu && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setShowHamburgerMenu(false)}
+          />
+          <div className="fixed top-0 right-0 h-full w-80 bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900 border-l border-white/20 z-50">
+            <div className="flex items-center justify-between p-6 border-b border-white/20">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">Menu</h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowHamburgerMenu(false)}
+                className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+            <div className="flex-1 p-6">
+              <div className="text-center text-gray-400 mt-20">
+                <p>More features coming soon...</p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/20">
+              <button
+                onClick={() => {
+                  setShowHamburgerMenu(false)
+                  handleLogout()
+                }}
+                className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-500/25"
+              >
+                <LogOut className="h-5 w-5 text-white" />
+                <span className="font-bold text-white">Logout</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+
+  // UserCard component
+  const UserCard = ({ user, onFollow, showStats = false }: { user: any, onFollow: (id: string) => void, showStats?: boolean }) => (
+    <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
+            <AvatarImage src={user.profile?.avatar} />
+            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+              {user.profile?.name?.[0] || user.username[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h3 className="font-bold text-white">{user.profile?.name || user.username}</h3>
+            <p className="text-purple-300 text-sm">@{user.username}</p>
+            {user.profile?.bio && (
+              <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.profile.bio}</p>
+            )}
+            {showStats && user._count && (
+              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
+                <span>👥 {user._count.followers} followers</span>
+                <span>📝 {user._count.posts} posts</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <Button 
+          onClick={() => onFollow(user.id)}
+          size="sm"
+          className={user.isFollowing ? 
+            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
+            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+          }
+        >
+          {user.isFollowing ? 'Following' : 'Follow'}
+        </Button>
+      </div>
     </div>
   )
 
@@ -1634,18 +1748,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`)
       if (res.ok) {
         const users = await res.json()
-        // Add follow status for each user
-        const usersWithFollowStatus = await Promise.all(
-          users.map(async (targetUser: any) => {
-            const followRes = await fetch(`/api/follow/status?userId=${targetUser.id}`)
-            const followData = followRes.ok ? await followRes.json() : { isFollowing: false }
-            return {
-              ...targetUser,
-              isFollowedByCurrentUser: followData.isFollowing
-            }
-          })
-        )
-        setSearchResults(usersWithFollowStatus)
+        setSearchResults(users)
       }
     } catch (error) {
       console.error('Search failed:', error)
@@ -1663,12 +1766,24 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       })
       
       if (res.ok) {
+        const data = await res.json()
         // Update search results
         setSearchResults(prev => prev.map(user => 
           user.id === userId 
-            ? { ...user, isFollowedByCurrentUser: !user.isFollowedByCurrentUser }
+            ? { ...user, isFollowing: data.following }
             : user
         ))
+        // Update suggestions
+        setProfileSuggestions(prev => prev.map(user => 
+          user.id === userId 
+            ? { ...user, isFollowing: data.following }
+            : user
+        ))
+        
+        // Update notification count if we followed someone
+        if (data.following && data.notificationCreated) {
+          fetchUnreadNotifications()
+        }
       }
     } catch (error) {
       console.error('Failed to toggle follow:', error)

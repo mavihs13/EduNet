@@ -31,9 +31,31 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+    
+    // Get post details to create notification
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: { user: true }
+    })
+    
+    // Create notification if commenting on someone else's post
+    let notificationCreated = false
+    if (post && post.userId !== payload.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: post.userId,
+          type: 'comment',
+          title: 'New Comment',
+          content: `${comment.user.profile?.name || comment.user.username} commented on your post`,
+          read: false
+        }
+      })
+      notificationCreated = true
+    }
 
-    return NextResponse.json(comment)
+    return NextResponse.json({ comment, notificationCreated })
   } catch (error) {
+    console.error('Comment creation error:', error)
     return NextResponse.json({ message: 'Failed to create comment' }, { status: 500 })
   }
 }

@@ -1,16 +1,23 @@
-import { getServerSession } from 'next-auth'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { verifyToken } from '@/lib/auth'
 import { userCrud } from '@/lib/crud'
 import CodingProfile from '@/components/CodingProfile'
 
 export default async function CodingProfilePage() {
-  const session = await getServerSession()
+  const cookieStore = cookies()
+  const token = cookieStore.get('token')?.value
   
-  if (!session?.user?.id) {
+  if (!token) {
     redirect('/login')
   }
 
-  const user = await userCrud.findById(session.user.id)
+  const payload = verifyToken(token)
+  if (!payload) {
+    redirect('/login')
+  }
+
+  const user = await userCrud.findById(payload.userId)
   
   if (!user) {
     redirect('/login')
