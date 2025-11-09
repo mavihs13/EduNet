@@ -38,13 +38,42 @@ export async function POST(
       })
       return NextResponse.json({ liked: false })
     } else {
+      // Get post details to create notification
+      const post = await prisma.post.findUnique({
+        where: { id: postId },
+        include: { user: { include: { profile: true } } }
+      })
+      
       await prisma.like.create({
         data: {
           postId,
           userId,
         },
       })
-      return NextResponse.json({ liked: true })
+      
+      // Create notification if liking someone else's post
+      let notificationCreated = false
+      if (post && post.userId !== userId) {
+        const liker = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { profile: true }
+        })
+        
+        if (liker) {
+          await prisma.notification.create({
+            data: {
+              userId: post.userId,
+              type: 'like',
+              title: 'New Like',
+              content: `${liker.profile?.name || liker.username} liked your post`,
+              read: false
+            }
+          })
+          notificationCreated = true
+        }
+      }
+      
+      return NextResponse.json({ liked: true, notificationCreated })
     }
   } catch (error) {
     return NextResponse.json({ message: 'Failed to toggle like' }, { status: 500 })

@@ -3,27 +3,7 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-    
-    if (!userId) {
-      return NextResponse.json([])
-    }
-
-    const achievements = await prisma.achievement.findMany({
-      where: { userId, isPublic: true },
-      orderBy: { earnedAt: 'desc' }
-    })
-    return NextResponse.json(achievements)
-  } catch (error) {
-    console.error('Achievements fetch error:', error)
-    return NextResponse.json([])
-  }
-}
-
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const cookieStore = cookies()
     const token = cookieStore.get('token')?.value
@@ -42,21 +22,29 @@ export async function POST(request: NextRequest) {
     if (!data.title || !data.description || !data.type) {
       return NextResponse.json({ error: 'Title, description and type are required' }, { status: 400 })
     }
+
+    // Check if achievement belongs to user
+    const existingAchievement = await prisma.achievement.findUnique({
+      where: { id: params.id }
+    })
+
+    if (!existingAchievement || existingAchievement.userId !== payload.userId) {
+      return NextResponse.json({ error: 'Achievement not found or unauthorized' }, { status: 404 })
+    }
     
-    const achievement = await prisma.achievement.create({
+    const achievement = await prisma.achievement.update({
+      where: { id: params.id },
       data: {
-        userId: payload.userId,
         title: data.title,
         description: data.description,
         type: data.type,
-        badge: data.badge || null,
-        isPublic: data.isPublic !== false
+        badge: data.badge || null
       }
     })
     
     return NextResponse.json(achievement)
   } catch (error) {
-    console.error('Achievement creation error:', error)
-    return NextResponse.json({ error: 'Failed to create achievement' }, { status: 500 })
+    console.error('Achievement update error:', error)
+    return NextResponse.json({ error: 'Failed to update achievement' }, { status: 500 })
   }
 }

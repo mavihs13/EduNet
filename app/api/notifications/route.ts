@@ -13,6 +13,15 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = verifyToken(token)!
+    const { searchParams } = new URL(request.url)
+    const unreadOnly = searchParams.get('unreadOnly') === 'true'
+    
+    if (unreadOnly) {
+      const count = await prisma.notification.count({
+        where: { userId: payload.userId, read: false }
+      })
+      return NextResponse.json({ count })
+    }
     
     const notifications = await prisma.notification.findMany({
       where: { userId: payload.userId },
