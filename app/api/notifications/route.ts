@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { notificationCrud } from '@/lib/crud'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,17 +17,11 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true'
     
     if (unreadOnly) {
-      const count = await prisma.notification.count({
-        where: { userId: payload.userId, read: false }
-      })
+      const count = await notificationCrud.getUnreadCount(payload.userId)
       return NextResponse.json({ count })
     }
     
-    const notifications = await prisma.notification.findMany({
-      where: { userId: payload.userId },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    })
+    const notifications = await notificationCrud.findByUser(payload.userId)
 
     return NextResponse.json(notifications)
   } catch (error) {
@@ -45,10 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, type, title, content } = await request.json()
-
-    const notification = await prisma.notification.create({
-      data: { userId, type, title, content }
-    })
+    const notification = await notificationCrud.create({ userId, type, title, content })
 
     return NextResponse.json(notification)
   } catch (error) {

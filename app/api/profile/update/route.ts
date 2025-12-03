@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { profileCrud } from '@/lib/crud'
+import { prisma } from '@/lib/prisma'
 
 export async function PUT(request: NextRequest) {
   try {
@@ -14,17 +14,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const { name, bio, avatar, skills, links, location } = await request.json()
-    const profile = await profileCrud.upsert(decoded.userId, {
-      name,
-      bio,
-      avatar,
-      skills,
-      links,
-      location
+    const { name, username, bio, avatar, skills, location } = await request.json()
+
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { username },
+      include: { profile: true }
     })
 
-    return NextResponse.json(profile)
+    const profile = await prisma.profile.upsert({
+      where: { userId: decoded.userId },
+      update: { name, bio, avatar, skills, location },
+      create: { userId: decoded.userId, name, bio, avatar, skills, location }
+    })
+
+    return NextResponse.json({ ...user, profile })
   } catch (error) {
     console.error('Profile update error:', error)
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })

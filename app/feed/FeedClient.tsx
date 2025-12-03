@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye, Menu } from 'lucide-react'
+import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye, Menu, Users, Play, Pause } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import CodeViewer from '@/components/CodeViewer'
 import Link from 'next/link'
@@ -50,14 +50,38 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [profileSuggestions, setProfileSuggestions] = useState<any[]>([])
+  const [profileStats, setProfileStats] = useState({ posts: 0, followers: 0, following: 0 })
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
-    // Fetch stories
+    const theme = localStorage.getItem('theme')
+    setIsDarkMode(theme === 'dark')
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode ? 'dark' : 'light'
+    setIsDarkMode(!isDarkMode)
+    localStorage.setItem('theme', newTheme)
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  useEffect(() => {
     fetchStories()
-    // Fetch unread notifications count
     fetchUnreadNotifications()
-    // Fetch profile suggestions
     fetchProfileSuggestions()
+    fetchProfileStats()
+    const theme = localStorage.getItem('theme')
+    const isDark = theme === 'dark'
+    setIsDarkMode(isDark)
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
   }, [])
 
   const fetchProfileSuggestions = async () => {
@@ -69,6 +93,18 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       }
     } catch (error) {
       console.error('Failed to fetch suggestions:', error)
+    }
+  }
+
+  const fetchProfileStats = async () => {
+    try {
+      const res = await fetch('/api/profile/stats')
+      if (res.ok) {
+        const data = await res.json()
+        setProfileStats(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile stats:', error)
     }
   }
 
@@ -97,6 +133,8 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
   }
 
   const handleCreateStory = async () => {
+    if (!storyContent.trim() && !storyMedia) return
+    
     try {
       const res = await fetch('/api/stories', {
         method: 'POST',
@@ -118,6 +156,24 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       }
     } catch (error) {
       showNotification('Failed to create story', 'error')
+    }
+  }
+
+  const handleDeleteStory = async (storyId: string) => {
+    if (!confirm('Delete this story?')) return
+    
+    try {
+      const res = await fetch(`/api/stories/${storyId}`, {
+        method: 'DELETE'
+      })
+      
+      if (res.ok) {
+        fetchStories()
+        setShowStoryViewer(false)
+        showNotification('Story deleted! 🗑️', 'success')
+      }
+    } catch (error) {
+      showNotification('Failed to delete story', 'error')
     }
   }
 
@@ -244,13 +300,17 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
           code: postCode || null,
           language: postCode ? postLanguage : null,
           tags: postTags || null,
-
+          media: mediaPreviews.length > 0 ? mediaPreviews.map((url, index) => ({
+            url,
+            type: selectedMedia[index]?.type?.startsWith('video') ? 'video' : 'image'
+          })) : null
         })
       })
 
       if (res.ok) {
         const newPost = await res.json()
         setPosts([newPost, ...posts])
+        fetchProfileStats()
         resetUploadModal()
       } else {
         console.error('Failed to create post:', await res.text())
@@ -547,29 +607,114 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
     setShowPostMenu(prev => ({ ...prev, [postId]: false }))
   }
 
+  async function handleSearch(query: string) {
+    if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    setSearchLoading(true)
+    try {
+      const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`)
+      if (res.ok) {
+        const users = await res.json()
+        setSearchResults(users)
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  async function toggleFollow(userId: string) {
+    try {
+      const res = await fetch('/api/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followingId: userId })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setSearchResults(prev => prev.map(user => 
+          user.id === userId ? { ...user, isFollowing: data.following } : user
+        ))
+        setProfileSuggestions(prev => prev.map(user => 
+          user.id === userId ? { ...user, isFollowing: data.following } : user
+        ))
+        fetchProfileStats()
+        
+        if (data.following && data.notificationCreated) {
+          fetchUnreadNotifications()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle follow:', error)
+    }
+  }
+
+  const UserCard = ({ user, onFollow, showStats = false }: { user: any, onFollow: (id: string) => void, showStats?: boolean }) => (
+    <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
+            <AvatarImage src={user.profile?.avatar} />
+            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+              {user.profile?.name?.[0] || user.username[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h3 className="font-bold text-white">{user.profile?.name || user.username}</h3>
+            <p className="text-purple-300 text-sm">@{user.username}</p>
+            {user.profile?.bio && (
+              <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.profile.bio}</p>
+            )}
+            {showStats && user._count && (
+              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
+                <span>👥 {user._count.followers} followers</span>
+                <span>📝 {user._count.posts} posts</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <Button 
+          onClick={() => onFollow(user.id)}
+          size="sm"
+          className={user.isFollowing ? 
+            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
+            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+          }
+        >
+          {user.isFollowing ? 'Following' : 'Follow'}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3 hover:scale-105 transition-transform cursor-pointer">
-            <div className="w-10 h-10 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-xl flex items-center justify-center">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-sm backdrop-blur-sm bg-opacity-95">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">📚</span>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               EduNet
             </h1>
-            <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-semibold">Gen-Z</span>
           </Link>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <Link href="/feed">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="hover:bg-white/10 text-white"
+                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Home className="h-6 w-6" />
+                <Home className="h-5 w-5" />
               </Button>
             </Link>
             <Button 
@@ -579,9 +724,9 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                 e.stopPropagation()
                 setShowSearchModal(true)
               }}
-              className="hover:bg-white/10 text-white relative"
+              className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
             >
-              <Search className="h-6 w-6" />
+              <Search className="h-5 w-5" />
             </Button>
             <Button 
               variant="ghost" 
@@ -590,23 +735,23 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                 e.stopPropagation()
                 setShowUploadModal(true)
               }}
-              className="hover:bg-white/10 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg hover:scale-110 transition-all duration-300 shadow-lg shadow-pink-500/25"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
             >
-              <Plus className="h-6 w-6" />
+              <Plus className="h-5 w-5" />
             </Button>
             <Link href="/notifications">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="hover:bg-white/10 text-white relative"
+                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl relative"
                 onClick={(e) => {
                   e.stopPropagation()
                   setUnreadNotifications(0)
                 }}
               >
-                <Bell className="h-6 w-6" />
+                <Bell className="h-5 w-5" />
                 {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                     {unreadNotifications > 99 ? '99+' : unreadNotifications}
                   </span>
                 )}
@@ -616,25 +761,42 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="hover:bg-white/10 text-white relative"
+                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
                 onClick={(e) => {
                   e.stopPropagation()
-                  // Navigation will be handled by Link
                 }}
               >
-                <Code className="h-6 w-6" />
+                <Code className="h-5 w-5" />
               </Button>
             </Link>
             <Link href="/profile">
-              <Avatar 
-                className="h-9 w-9 cursor-pointer ring-2 ring-purple-400 ring-offset-2 ring-offset-transparent hover:ring-pink-400 transition-all"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <AvatarImage src={user.profile?.avatar} />
-                <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-                  {user.profile?.name?.[0] || user.username[0]}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative cursor-pointer group">
+                <Avatar className="h-9 w-9 ring-2 ring-blue-500 hover:ring-purple-500 transition-all">
+                  <AvatarImage src={user.profile?.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
+                    {user.profile?.name?.[0] || user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute top-12 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 min-w-[200px] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50">
+                  <div className="text-center">
+                    <p className="text-gray-900 dark:text-white font-bold mb-2">{user.profile?.name || user.username}</p>
+                    <div className="flex justify-around text-sm">
+                      <div>
+                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.posts}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Posts</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.followers}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Followers</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.following}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Following</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </Link>
             <Button 
               variant="ghost" 
@@ -643,9 +805,9 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                 e.stopPropagation()
                 setShowHamburgerMenu(!showHamburgerMenu)
               }} 
-              className="hover:bg-white/10 text-white"
+              className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -708,21 +870,21 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
         </div>
 
         {/* Posts Feed */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {posts.map((post) => (
-            <div key={post.id} className="bg-black/20 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden hover:border-purple-400/30 transition-all duration-300">
+            <div key={post.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300">
               {/* Post Header */}
-              <div className="flex items-center justify-between p-6">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-11 w-11 ring-2 ring-blue-500">
                     <AvatarImage src={post.user.profile?.avatar} />
-                    <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
                       {post.user.profile?.name?.[0] || post.user.username[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-bold text-white">{post.user.profile?.name || post.user.username}</p>
-                    <p className="text-sm text-purple-300">@{post.user.username} • {formatTimeAgo(new Date(post.createdAt))}</p>
+                    <p className="font-bold text-gray-900 dark:text-white">{post.user.profile?.name || post.user.username}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">@{post.user.username} • {formatTimeAgo(new Date(post.createdAt))}</p>
                   </div>
                 </div>
                 {post.user.id === user.id && (
@@ -731,7 +893,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                       variant="ghost" 
                       size="icon" 
                       onClick={() => setShowPostMenu(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
-                      className="hover:bg-white/10 text-white"
+                      className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
                     >
                       <MoreHorizontal className="h-5 w-5" />
                     </Button>
@@ -760,13 +922,13 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               </div>
 
               {/* Post Content */}
-              <div className="px-6 pb-4">
+              <div className="px-4 pb-3">
                 {editingPost === post.id ? (
                   <div className="mb-4">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full bg-black/30 border border-purple-400/30 rounded-2xl p-4 text-white placeholder:text-gray-400 resize-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                       rows={3}
                     />
                     <div className="flex space-x-2 mt-3">
@@ -787,14 +949,14 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                   </div>
                 ) : (
                   post.content && (
-                    <p className="text-white mb-4 leading-relaxed text-lg">{post.content}</p>
+                    <p className="text-gray-900 dark:text-white mb-3 leading-relaxed">{post.content}</p>
                   )
                 )}
                 
                 {post.tags && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {post.tags.split(',').map((tag: string) => (
-                      <span key={tag.trim()} className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 px-3 py-1 rounded-full text-sm font-semibold border border-pink-400/30 hover:bg-pink-500/30 transition-colors cursor-pointer">
+                      <span key={tag.trim()} className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer">
                         #{tag.trim()}
                       </span>
                     ))}
@@ -883,36 +1045,36 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               )}
 
               {/* Post Actions */}
-              <div className="border-t border-white/10 bg-black/20">
-                <div className="flex items-center justify-between px-6 py-4">
+              <div className="border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center space-x-8">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleLike(post.id)}
-                      className={`hover:bg-pink-500/20 transition-all duration-300 ${post.likes.some((like: any) => like.userId === user.id) ? 'text-pink-400' : 'text-white'}`}
+                      className={`hover:bg-red-50 dark:hover:bg-red-900/20 transition-all ${post.likes.some((like: any) => like.userId === user.id) ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}
                     >
-                      <Heart className={`h-6 w-6 mr-2 ${post.likes.some((like: any) => like.userId === user.id) ? 'fill-current animate-pulse' : ''}`} />
-                      <span className="font-bold">{post._count.likes}</span>
+                      <Heart className={`h-5 w-5 mr-2 ${post.likes.some((like: any) => like.userId === user.id) ? 'fill-current' : ''}`} />
+                      <span className="font-semibold">{post._count.likes}</span>
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={() => toggleComments(post.id)}
-                      className="text-white hover:bg-purple-500/20 transition-all duration-300"
+                      className="text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
                     >
-                      <MessageCircle className="h-6 w-6 mr-2" />
-                      <span className="font-bold">{post._count.comments}</span>
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      <span className="font-semibold">{post._count.comments}</span>
                     </Button>
                     <div className="relative">
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setShowShareMenu(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
-                        className="text-white hover:bg-cyan-500/20 transition-all duration-300"
+                        className="text-gray-600 dark:text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-all"
                       >
-                        <Share className="h-6 w-6 mr-2" />
-                        <span className="font-bold">Share</span>
+                        <Share className="h-5 w-5 mr-2" />
+                        <span className="font-semibold">Share</span>
                       </Button>
                       {showShareMenu[post.id] && (
                         <div className="absolute bottom-12 left-0 bg-white/95 backdrop-blur-2xl border border-gray-200/50 rounded-3xl p-4 z-10 min-w-[280px] shadow-2xl shadow-black/20">
@@ -1513,7 +1675,7 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
             {/* Header */}
             <div className="absolute top-12 left-4 right-4 flex items-center justify-between z-10">
               <div className="flex items-center space-x-3">
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-8 h-8 ring-2 ring-white/50">
                   <AvatarImage src={storyGroups[currentUserIndex].user.profile?.avatar} />
                   <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
                     {storyGroups[currentUserIndex].user.profile?.name?.[0] || storyGroups[currentUserIndex].user.username[0]}
@@ -1524,13 +1686,23 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                     {storyGroups[currentUserIndex].user.profile?.name || storyGroups[currentUserIndex].user.username}
                   </p>
                   <p className="text-white/70 text-xs">
-                    {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {Math.max(0, 24 - Math.floor((Date.now() - new Date(currentStory.createdAt).getTime()) / (1000 * 60 * 60)))}h left
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowStoryViewer(false)} className="text-white">
-                <X className="h-6 w-6" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {storyGroups[currentUserIndex].user.id === user.id && (
+                  <button 
+                    onClick={() => handleDeleteStory(currentStory.id)}
+                    className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-full transition-all"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                )}
+                <button onClick={() => setShowStoryViewer(false)} className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-full transition-all">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
 
             {/* Story Content */}
@@ -1564,10 +1736,36 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               <ChevronRight className="h-8 w-8" />
             </button>
 
-            {/* Views count */}
-            <div className="absolute bottom-4 left-4 flex items-center space-x-1 text-white/70">
-              <Eye className="h-4 w-4" />
-              <span className="text-sm">{currentStory._count.views}</span>
+            {/* Views count & Reply */}
+            <div className="absolute bottom-4 left-4 right-4 z-10">
+              {storyGroups[currentUserIndex].user.id === user.id ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-white/90 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
+                    <Eye className="h-4 w-4" />
+                    <span className="text-sm font-medium">{currentStory._count.views} views</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Send message"
+                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2 text-white placeholder:text-white/60 focus:outline-none focus:border-white/50"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                        showNotification('Reply sent! 💬', 'success')
+                        e.currentTarget.value = ''
+                      }
+                    }}
+                  />
+                  <button className="text-white/80 hover:text-white p-2">
+                    <Heart className="h-6 w-6" />
+                  </button>
+                  <button className="text-white/80 hover:text-white p-2">
+                    <Send className="h-6 w-6" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Tap areas for navigation */}
@@ -1696,97 +1894,4 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
       )}
     </div>
   )
-
-  // UserCard component
-  const UserCard = ({ user, onFollow, showStats = false }: { user: any, onFollow: (id: string) => void, showStats?: boolean }) => (
-    <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
-            <AvatarImage src={user.profile?.avatar} />
-            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-              {user.profile?.name?.[0] || user.username[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h3 className="font-bold text-white">{user.profile?.name || user.username}</h3>
-            <p className="text-purple-300 text-sm">@{user.username}</p>
-            {user.profile?.bio && (
-              <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.profile.bio}</p>
-            )}
-            {showStats && user._count && (
-              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
-                <span>👥 {user._count.followers} followers</span>
-                <span>📝 {user._count.posts} posts</span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <Button 
-          onClick={() => onFollow(user.id)}
-          size="sm"
-          className={user.isFollowing ? 
-            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
-            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-          }
-        >
-          {user.isFollowing ? 'Following' : 'Follow'}
-        </Button>
-      </div>
-    </div>
-  )
-
-  async function handleSearch(query: string) {
-    if (!query.trim()) {
-      setSearchResults([])
-      return
-    }
-
-    setSearchLoading(true)
-    try {
-      const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`)
-      if (res.ok) {
-        const users = await res.json()
-        setSearchResults(users)
-      }
-    } catch (error) {
-      console.error('Search failed:', error)
-    } finally {
-      setSearchLoading(false)
-    }
-  }
-
-  async function toggleFollow(userId: string) {
-    try {
-      const res = await fetch('/api/follow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ followingId: userId })
-      })
-      
-      if (res.ok) {
-        const data = await res.json()
-        // Update search results
-        setSearchResults(prev => prev.map(user => 
-          user.id === userId 
-            ? { ...user, isFollowing: data.following }
-            : user
-        ))
-        // Update suggestions
-        setProfileSuggestions(prev => prev.map(user => 
-          user.id === userId 
-            ? { ...user, isFollowing: data.following }
-            : user
-        ))
-        
-        // Update notification count if we followed someone
-        if (data.following && data.notificationCreated) {
-          fetchUnreadNotifications()
-        }
-      }
-    } catch (error) {
-      console.error('Failed to toggle follow:', error)
-    }
-  }
 }

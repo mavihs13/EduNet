@@ -290,3 +290,11 @@ model Achievement {
 
   @@index([userId, type])
 }
+
+model Analytics {
+  id    String @id @default(cuid())
+  type  String @unique
+  count Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { friendCrud } from '@/lib/crud'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,26 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { requestId } = await request.json()
-
-    const friendRequest = await prisma.friendRequest.findUnique({
-      where: { id: requestId }
-    })
-
-    if (!friendRequest || friendRequest.receiverId !== payload.userId) {
-      return NextResponse.json({ message: 'Friend request not found' }, { status: 404 })
-    }
-
-    await prisma.$transaction([
-      prisma.friendship.create({
-        data: {
-          user1Id: friendRequest.senderId,
-          user2Id: friendRequest.receiverId
-        }
-      }),
-      prisma.friendRequest.delete({
-        where: { id: requestId }
-      })
-    ])
+    await friendCrud.acceptRequest(requestId, payload.userId)
 
     return NextResponse.json({ message: 'Friend request accepted' })
   } catch (error) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
+import { verifyToken } from '@/lib/auth'
+import { searchCrud } from '@/lib/crud'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,37 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    const users = await prisma.user.findMany({
-      where: {
-        OR: [
-          {
-            username: {
-              contains: query,
-              mode: 'insensitive'
-            }
-          },
-          {
-            profile: {
-              name: {
-                contains: query,
-                mode: 'insensitive'
-              }
-            }
-          },
-          {
-            profile: {
-              skills: {
-                hasSome: [query]
-              }
-            }
-          }
-        ]
-      },
-      include: {
-        profile: true
-      },
-      take: 20
-    })
+    const cookieStore = cookies()
+    const token = cookieStore.get('token')?.value
+    const payload = token ? verifyToken(token) : null
+    
+    const users = await searchCrud.users(query, payload?.userId)
 
     return NextResponse.json(users)
   } catch (error) {

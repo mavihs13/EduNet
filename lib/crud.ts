@@ -48,26 +48,52 @@ export const userCrud = {
 
 // Post CRUD
 export const postCrud = {
-  create: async (data: { userId: string; content?: string; code?: string; language?: string; tags?: string }) => {
+  create: async (data: { userId: string; content?: string; code?: string; language?: string; tags?: string; media?: any[] }) => {
     if (!data.userId) throw new Error('User ID is required')
-    if (!data.content?.trim() && !data.code?.trim()) throw new Error('Content or code is required')
+    if (!data.content?.trim() && !data.code?.trim() && !data.media?.length) throw new Error('Content, code, or media is required')
     
-    return await prisma.post.create({
+    const post = await prisma.post.create({
       data: {
-        ...data,
+        userId: data.userId,
         content: data.content?.trim() || null,
-        code: data.code?.trim() || null
+        code: data.code?.trim() || null,
+        language: data.language || null,
+        tags: data.tags || null
       },
       include: {
         user: { include: { profile: true } },
         likes: true,
         comments: { include: { user: { include: { profile: true } } } },
+        media: true,
         _count: { select: { likes: true, comments: true } }
       }
     })
+
+    if (data.media && data.media.length > 0) {
+      await prisma.postMedia.createMany({
+        data: data.media.map((m: any) => ({
+          postId: post.id,
+          url: m.url,
+          type: m.type
+        }))
+      })
+      
+      return await prisma.post.findUnique({
+        where: { id: post.id },
+        include: {
+          user: { include: { profile: true } },
+          likes: true,
+          comments: { include: { user: { include: { profile: true } } } },
+          media: true,
+          _count: { select: { likes: true, comments: true } }
+        }
+      })
+    }
+
+    return post
   },
   
-  findMany: async (page = 1, limit = 20) => {
+  findAll: async (page = 1, limit = 20) => {
     const validPage = Math.max(1, page)
     const validLimit = Math.min(50, Math.max(1, limit))
     
@@ -82,6 +108,30 @@ export const postCrud = {
           orderBy: { createdAt: 'desc' },
           take: 5
         },
+        media: true,
+        _count: { select: { likes: true, comments: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  },
+  
+  findByUserId: async (userId: string, page = 1, limit = 20) => {
+    const validPage = Math.max(1, page)
+    const validLimit = Math.min(50, Math.max(1, limit))
+    
+    return await prisma.post.findMany({
+      where: { userId },
+      skip: (validPage - 1) * validLimit,
+      take: validLimit,
+      include: {
+        user: { include: { profile: true } },
+        likes: true,
+        comments: { 
+          include: { user: { include: { profile: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        },
+        media: true,
         _count: { select: { likes: true, comments: true } }
       },
       orderBy: { createdAt: 'desc' }
@@ -95,6 +145,7 @@ export const postCrud = {
         user: { include: { profile: true } },
         likes: true,
         comments: { include: { user: { include: { profile: true } } } },
+        media: true,
         _count: { select: { likes: true, comments: true } }
       }
     })
@@ -363,28 +414,6 @@ export const analyticsCrud = {
         }
       })
     }
-  }
-}nt: async (userId: string) => {
-    if (!userId) return 0
-    return await prisma.notification.count({
-      where: { userId, read: false }
-    })
-  },
-  
-  markAsRead: async (id: string) => {
-    if (!id) throw new Error('Notification ID is required')
-    return await prisma.notification.update({
-      where: { id },
-      data: { read: true }
-    })
-  },
-  
-  markAllAsRead: async (userId: string) => {
-    if (!userId) return { count: 0 }
-    return await prisma.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true }
-    })
   }
 }
 

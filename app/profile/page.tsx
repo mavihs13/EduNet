@@ -1,77 +1,33 @@
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { redirect } from 'next/navigation'
 import ProfileClient from './ProfileClient'
 
-export default async function ProfilePage() {
+async function getCurrentUser() {
   const cookieStore = cookies()
   const token = cookieStore.get('token')?.value
-
-  if (!token) {
-    redirect('/login')
-  }
-
+  if (!token) return null
   const payload = verifyToken(token)
-  if (!payload) {
-    redirect('/login')
-  }
-
-  const user = await prisma.user.findUnique({
+  if (!payload) return null
+  return await prisma.user.findUnique({
     where: { id: payload.userId },
-    include: { 
-      profile: true,
-      posts: {
-        include: {
-          likes: true,
-          comments: true,
-          _count: {
-            select: { likes: true, comments: true }
-          }
-        },
-        orderBy: { createdAt: 'desc' }
-      },
-      friendships1: true,
-      friendships2: true,
-      _count: {
-        select: { posts: true }
-      }
-    }
+    include: { profile: true }
   })
+}
 
-  if (!user) {
-    redirect('/login')
-  }
+async function getStats(userId: string) {
+  const [postsCount, followersCount, followingCount] = await Promise.all([
+    prisma.post.count({ where: { userId } }),
+    prisma.follow.count({ where: { followingId: userId } }),
+    prisma.follow.count({ where: { followerId: userId } })
+  ])
+  return { posts: postsCount, followers: followersCount, following: followingCount }
+}
 
-  const followingCount = user.friendships1.length + user.friendships2.length
-  
-  // Count followers (people who follow this user)
-  const followersCount = await prisma.friendship.count({
-    where: {
-      OR: [
-        { user2Id: user.id },
-        { user1Id: user.id }
-      ]
-    }
-  })
-
-  // Get friends list for sharing
-  const friendships = await prisma.friendship.findMany({
-    where: {
-      OR: [
-        { user1Id: user.id },
-        { user2Id: user.id }
-      ]
-    },
-    include: {
-      user1: { select: { id: true, username: true } },
-      user2: { select: { id: true, username: true } }
-    }
-  })
-
-  const friends = friendships.map(f => 
-    f.user1Id === user.id ? f.user2 : f.user1
-  )
-
-  return <ProfileClient user={user} followingCount={followingCount} followersCount={followersCount} friends={friends} />
+export default async function ProfilePage() {
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+  const stats = await getStats(user.id)
+  return <ProfileClient initialUser={user} initialStats={stats} />
 }

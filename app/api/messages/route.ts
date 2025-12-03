@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { messageCrud } from '@/lib/crud'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,29 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'User ID required' }, { status: 400 })
     }
 
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: payload.userId, receiverId: otherUserId },
-          { senderId: otherUserId, receiverId: payload.userId }
-        ]
-      },
-      include: {
-        sender: { include: { profile: true } },
-        receiver: { include: { profile: true } }
-      },
-      orderBy: { createdAt: 'asc' }
-    })
-
-    // Mark messages as read
-    await prisma.message.updateMany({
-      where: {
-        senderId: otherUserId,
-        receiverId: payload.userId,
-        read: false
-      },
-      data: { read: true }
-    })
+    const messages = await messageCrud.findBetweenUsers(payload.userId, otherUserId)
+    await messageCrud.markAsRead(otherUserId, payload.userId)
 
     return NextResponse.json(messages)
   } catch (error) {
@@ -69,17 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { receiverId, content } = await request.json()
-
-    const message = await prisma.message.create({
-      data: {
-        senderId: payload.userId,
-        receiverId,
-        content,
-      },
-      include: {
-        sender: { include: { profile: true } },
-        receiver: { include: { profile: true } }
-      }
+    const message = await messageCrud.create({
+      senderId: payload.userId,
+      receiverId,
+      content
     })
 
     return NextResponse.json(message)

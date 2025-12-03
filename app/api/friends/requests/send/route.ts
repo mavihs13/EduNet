@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { friendCrud } from '@/lib/crud'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { receiverId } = await request.json()
-
-    const existingRequest = await prisma.friendRequest.findUnique({
-      where: {
-        senderId_receiverId: {
-          senderId: payload.userId,
-          receiverId
-        }
-      }
-    })
-
-    if (existingRequest) {
-      return NextResponse.json({ message: 'Friend request already sent' }, { status: 400 })
-    }
-
-    const friendRequest = await prisma.friendRequest.create({
-      data: {
-        senderId: payload.userId,
-        receiverId,
-        status: 'pending'
-      }
-    })
+    const friendRequest = await friendCrud.sendRequest(payload.userId, receiverId)
 
     return NextResponse.json(friendRequest)
   } catch (error) {

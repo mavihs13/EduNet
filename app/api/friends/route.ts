@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { friendCrud } from '@/lib/crud'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,24 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 })
     }
 
-    const friendships = await prisma.friendship.findMany({
-      where: {
-        OR: [
-          { user1Id: payload.userId },
-          { user2Id: payload.userId }
-        ]
-      },
-      include: {
-        user1: { include: { profile: true } },
-        user2: { include: { profile: true } }
-      }
-    })
-
-    const friends = friendships.map(friendship => {
-      return friendship.user1Id === payload.userId 
-        ? friendship.user2 
-        : friendship.user1
-    })
+    const friends = await friendCrud.getFriends(payload.userId)
 
     return NextResponse.json(friends)
   } catch (error) {

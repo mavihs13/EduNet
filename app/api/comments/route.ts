@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
+import { commentCrud, notificationCrud } from '@/lib/crud'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -18,18 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { postId, content } = await request.json()
-
-    const comment = await prisma.comment.create({
-      data: {
-        postId,
-        userId: payload.userId,
-        content
-      },
-      include: {
-        user: {
-          include: { profile: true }
-        }
-      }
+    const comment = await commentCrud.create({
+      postId,
+      userId: payload.userId,
+      content
     })
     
     // Get post details to create notification
@@ -41,14 +34,11 @@ export async function POST(request: NextRequest) {
     // Create notification if commenting on someone else's post
     let notificationCreated = false
     if (post && post.userId !== payload.userId) {
-      await prisma.notification.create({
-        data: {
-          userId: post.userId,
-          type: 'comment',
-          title: 'New Comment',
-          content: `${comment.user.profile?.name || comment.user.username} commented on your post`,
-          read: false
-        }
+      await notificationCrud.create({
+        userId: post.userId,
+        type: 'comment',
+        title: 'New Comment',
+        content: `${comment.user.profile?.name || comment.user.username} commented on your post`
       })
       notificationCreated = true
     }

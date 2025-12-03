@@ -59,6 +59,10 @@ export default function SearchClient({ user, users }: SearchClientProps) {
     return targetUser.isFollowedByCurrentUser || false
   }
 
+  const getUserStatus = (targetUser: any) => {
+    return targetUser.friendshipStatus || 'none'
+  }
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.href = '/login'

@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, Circle } from 'lucide-react'
+import { Send, Circle, Home, ArrowLeft } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import { io, Socket } from 'socket.io-client'
+import Link from 'next/link'
 
 export default function ChatPage() {
   const [socket, setSocket] = useState<Socket | null>(null)
@@ -93,13 +94,31 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      {/* Header */}
+      <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link href="/feed">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold text-white">Messages</h1>
+          </div>
+          <Link href="/feed">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+              <Home className="h-6 w-6" />
+            </Button>
+          </Link>
+        </div>
+      </header>
       <div className="max-w-6xl mx-auto py-6 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
           {/* Friends List */}
-          <Card className="md:col-span-1">
+          <Card className="md:col-span-1 bg-black/20 backdrop-blur-xl border-white/10">
             <CardHeader>
-              <CardTitle>Messages</CardTitle>
+              <CardTitle className="text-white">Messages</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="space-y-1">
@@ -107,8 +126,8 @@ export default function ChatPage() {
                   <div
                     key={friend.id}
                     onClick={() => selectFriend(friend)}
-                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b ${
-                      selectedFriend?.id === friend.id ? 'bg-blue-50' : ''
+                    className={`p-3 cursor-pointer hover:bg-white/5 border-b border-white/10 ${
+                      selectedFriend?.id === friend.id ? 'bg-purple-500/20' : ''
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -124,10 +143,10 @@ export default function ChatPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
+                        <p className="font-medium truncate text-white">
                           {friend.profile?.name || friend.username}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-purple-300 truncate">
                           @{friend.username}
                         </p>
                       </div>
@@ -139,10 +158,10 @@ export default function ChatPage() {
           </Card>
 
           {/* Chat Area */}
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 bg-black/20 backdrop-blur-xl border-white/10">
             {selectedFriend ? (
               <>
-                <CardHeader className="border-b">
+                <CardHeader className="border-b border-white/10">
                   <div className="flex items-center space-x-3">
                     <Avatar>
                       <AvatarImage src={selectedFriend.profile?.avatar} />
@@ -151,10 +170,10 @@ export default function ChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold">
+                      <p className="font-semibold text-white">
                         {selectedFriend.profile?.name || selectedFriend.username}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-purple-300">
                         {onlineUsers.has(selectedFriend.id) ? 'Online' : 'Offline'}
                       </p>
                     </div>
@@ -172,8 +191,8 @@ export default function ChatPage() {
                         <div
                           className={`max-w-xs px-4 py-2 rounded-lg ${
                             message.senderId === 'current-user-id'
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-200 text-gray-900'
+                              ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
+                              : 'bg-black/40 text-white border border-white/10'
                           }`}
                         >
                           <p>{message.content}</p>
@@ -185,15 +204,16 @@ export default function ChatPage() {
                     ))}
                     <div ref={messagesEndRef} />
                   </div>
-                  <div className="border-t p-4">
+                  <div className="border-t border-white/10 p-4">
                     <div className="flex space-x-2">
                       <Input
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        className="bg-black/30 border-white/10 text-white placeholder:text-gray-400"
                       />
-                      <Button onClick={sendMessage}>
+                      <Button onClick={sendMessage} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600">
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
@@ -202,7 +222,7 @@ export default function ChatPage() {
               </>
             ) : (
               <CardContent className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Select a friend to start chatting</p>
+                <p className="text-gray-400">Select a friend to start chatting</p>
               </CardContent>
             )}
           </Card>

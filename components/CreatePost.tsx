@@ -13,8 +13,6 @@ interface CreatePostProps {
 export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showOptions, setShowOptions] = useState(false)
-  const [audience, setAudience] = useState('everyone')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSubmit = async () => {
@@ -34,7 +32,6 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
         const newPost = await res.json()
         onPostCreated(newPost)
         setContent('')
-        setShowOptions(false)
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto'
         }
@@ -71,19 +68,6 @@ export default function CreatePost({ user, onPostCreated }: CreatePostProps) {
           </Avatar>
           
           <div className="flex-1 min-w-0">
-            {/* Audience Selector */}
-            <div className="mb-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowOptions(!showOptions)}
-                className="text-blue-500 hover:bg-blue-50 px-3 py-1 rounded-full text-sm font-medium border border-gray-300"
-              >
-                <Globe className="h-4 w-4 mr-1" />
-                Everyone
-              </Button>
-            </div>
-
             {/* Text Area */}
             <textarea
               ref={textareaRef}
