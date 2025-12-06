@@ -33,41 +33,53 @@ async function getCurrentUser() {
 }
 
 async function getFeedPosts(userId: string) {
-  const friendships = await prisma.friendship.findMany({
-    where: {
-      OR: [{ user1Id: userId }, { user2Id: userId }]
-    }
+  // Get user's following list
+  const following = await prisma.follow.findMany({
+    where: { followerId: userId },
+    select: { followingId: true }
   })
 
-  const friendIds = friendships.map(f => 
-    f.user1Id === userId ? f.user2Id : f.user1Id
-  )
+  const followingIds = following.map(f => f.followingId)
+
+  // Get all public users (accounts where isPrivate is false or doesn't exist)
+  const publicUsers = await prisma.user.findMany({
+    where: {
+      OR: [
+        { profile: { isPrivate: false } },
+        { profile: null }
+      ]
+    },
+    select: { id: true }
+  })
+
+  const publicUserIds = publicUsers.map(u => u.id)
+
+  // Combine all user IDs we want to show posts from
+  const allowedUserIds = [...new Set([userId, ...followingIds, ...publicUserIds])]
 
   return await prisma.post.findMany({
     where: {
-      OR: [
-        { userId: userId },
-        { userId: { in: friendIds } }
-      ]
+      userId: { in: allowedUserIds }
     },
     include: {
       user: {
         include: { profile: true }
       },
       likes: true,
-
+      media: true,
       comments: {
         include: {
           user: { include: { profile: true } }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 2
       },
       _count: {
         select: { likes: true, comments: true }
       }
     },
     orderBy: { createdAt: 'desc' },
-    take: 20
+    take: 50
   })
 }
 

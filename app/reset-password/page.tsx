@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -65,54 +63,77 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-          <CardContent className="text-center p-6">
-            <p className="text-white/70">Invalid or missing reset token</p>
-            <Button onClick={() => router.push('/forgot-password')} className="mt-4">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white" style={{ fontFamily: 'Billabong, cursive' }}>
+              EduNet
+            </h1>
+          </div>
+          <div className="bg-gray-900 border border-gray-700 rounded p-8 text-center">
+            <p className="text-gray-300 mb-4">Invalid or missing reset token</p>
+            <Link
+              href="/forgot-password"
+              className="inline-block w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded transition-colors"
+              style={{ backgroundColor: '#4e8fef' }}
+            >
               Request New Reset Link
-            </Button>
-          </CardContent>
-        </Card>
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-        <CardHeader>
-          <CardTitle className="text-center text-white">Reset Password</CardTitle>
-          <p className="text-center text-white/70">Enter your new password</p>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'Billabong, cursive' }}>
+            EduNet
+          </h1>
+        </div>
+        
+        <div className="bg-gray-900 border border-gray-700 rounded p-8">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Reset Password</h2>
+            <p className="text-gray-400 text-sm">Enter your new password</p>
+          </div>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
+            <input
               type="password"
               placeholder="New Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
             />
-            <Input
+            <input
               type="password"
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50"
+              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded transition-colors disabled:opacity-50"
+              style={{ backgroundColor: '#4e8fef' }}
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>
           </form>
-        </CardContent>
-      </Card>
+          
+          <div className="text-center mt-6">
+            <Link href="/login" className="text-blue-400 hover:text-blue-300 text-sm transition-colors">
+              Back to Login
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

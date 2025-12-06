@@ -218,104 +218,69 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-            <Code className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Coding Profile
-            </h2>
-            <p className="text-gray-500 text-sm">Showcase your coding journey 🚀</p>
-          </div>
-        </div>
-        {isOwnProfile && (
+      {isOwnProfile && (
+        <div className="flex justify-end mb-4">
           <Button 
-            onClick={() => {
-              console.log('Edit button clicked')
-              setShowEditModal(true)
-            }} 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-            size="sm"
+            onClick={() => setShowEditModal(true)} 
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
           >
             <Edit3 className="h-4 w-4 mr-2" />
             Edit Profile
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <div className="flex items-center justify-between mb-3">
-            <Target className="h-10 w-10" />
-            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Total</span>
-          </div>
-          <p className="text-3xl font-bold mb-1">{(codingProfile?.easyProblems || 0) + (codingProfile?.mediumProblems || 0) + (codingProfile?.hardProblems || 0)}</p>
-          <p className="text-sm opacity-90">Problems Solved</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-lg transition-all">
+          <Target className="h-8 w-8 text-green-600 mb-3" />
+          <p className="text-2xl font-bold text-gray-900 mb-1">{(codingProfile?.easyProblems || 0) + (codingProfile?.mediumProblems || 0) + (codingProfile?.hardProblems || 0)}</p>
+          <p className="text-sm text-gray-600">Problems Solved</p>
         </div>
         
-        <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <div className="flex items-center justify-between mb-3">
-            <Zap className="h-10 w-10" />
-            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">🔥</span>
-          </div>
-          <p className="text-3xl font-bold mb-1">{codingProfile?.streak || 0}</p>
-          <p className="text-sm opacity-90">Day Streak</p>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-lg transition-all">
+          <Zap className="h-8 w-8 text-orange-600 mb-3" />
+          <p className="text-2xl font-bold text-gray-900 mb-1">{codingProfile?.streak || 0}</p>
+          <p className="text-sm text-gray-600">Day Streak</p>
         </div>
         
-        <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <div className="flex items-center justify-between mb-3">
-            <Trophy className="h-10 w-10" />
-            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Rating</span>
-          </div>
-          <p className="text-3xl font-bold mb-1">{codingProfile?.contestRating || 0}</p>
-          <p className="text-sm opacity-90">Contest Rating</p>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-lg transition-all">
+          <Trophy className="h-8 w-8 text-yellow-600 mb-3" />
+          <p className="text-2xl font-bold text-gray-900 mb-1">{codingProfile?.contestRating || 0}</p>
+          <p className="text-sm text-gray-600">Contest Rating</p>
         </div>
         
-        <div className="bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <div className="flex items-center justify-between mb-3">
-            <Star className="h-10 w-10" />
-            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">✨</span>
-          </div>
-          <p className="text-3xl font-bold mb-1">{achievements.length}</p>
-          <p className="text-sm opacity-90">Achievements</p>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-lg transition-all">
+          <Star className="h-8 w-8 text-purple-600 mb-3" />
+          <p className="text-2xl font-bold text-gray-900 mb-1">{achievements.length}</p>
+          <p className="text-sm text-gray-600">Achievements</p>
         </div>
       </div>
 
       {/* Problem Breakdown */}
       {codingProfile && (codingProfile.easyProblems > 0 || codingProfile.mediumProblems > 0 || codingProfile.hardProblems > 0) && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
-          <div className="flex items-center mb-6">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg mr-3">
-              <Target className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800">Problem Breakdown</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <div className="text-3xl font-bold text-green-600 mb-2">{codingProfile.easyProblems}</div>
-              <div className="text-sm font-medium text-green-700 mb-1">Easy</div>
-              <div className="text-xs text-green-600 mb-2">{codingProfile.easyProblems}/1000</div>
-              <div className="w-full bg-green-200 rounded-full h-3">
-                <div className="bg-green-500 h-3 rounded-full transition-all duration-500" style={{width: `${Math.min((codingProfile.easyProblems / 1000) * 100, 100)}%`}}></div>
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Problem Breakdown</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-2xl font-bold text-green-600 mb-1">{codingProfile.easyProblems}</div>
+              <div className="text-sm font-medium text-green-700 mb-2">Easy</div>
+              <div className="w-full bg-green-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{width: `${Math.min((codingProfile.easyProblems / 1000) * 100, 100)}%`}}></div>
               </div>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-              <div className="text-3xl font-bold text-yellow-600 mb-2">{codingProfile.mediumProblems}</div>
-              <div className="text-sm font-medium text-yellow-700 mb-1">Medium</div>
-              <div className="text-xs text-yellow-600 mb-2">{codingProfile.mediumProblems}/800</div>
-              <div className="w-full bg-yellow-200 rounded-full h-3">
-                <div className="bg-yellow-500 h-3 rounded-full transition-all duration-500" style={{width: `${Math.min((codingProfile.mediumProblems / 800) * 100, 100)}%`}}></div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="text-2xl font-bold text-yellow-600 mb-1">{codingProfile.mediumProblems}</div>
+              <div className="text-sm font-medium text-yellow-700 mb-2">Medium</div>
+              <div className="w-full bg-yellow-200 rounded-full h-2">
+                <div className="bg-yellow-500 h-2 rounded-full" style={{width: `${Math.min((codingProfile.mediumProblems / 800) * 100, 100)}%`}}></div>
               </div>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
-              <div className="text-3xl font-bold text-red-600 mb-2">{codingProfile.hardProblems}</div>
-              <div className="text-sm font-medium text-red-700 mb-1">Hard</div>
-              <div className="text-xs text-red-600 mb-2">{codingProfile.hardProblems}/500</div>
-              <div className="w-full bg-red-200 rounded-full h-3">
-                <div className="bg-red-500 h-3 rounded-full transition-all duration-500" style={{width: `${Math.min((codingProfile.hardProblems / 500) * 100, 100)}%`}}></div>
+            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-2xl font-bold text-red-600 mb-1">{codingProfile.hardProblems}</div>
+              <div className="text-sm font-medium text-red-700 mb-2">Hard</div>
+              <div className="w-full bg-red-200 rounded-full h-2">
+                <div className="bg-red-500 h-2 rounded-full" style={{width: `${Math.min((codingProfile.hardProblems / 500) * 100, 100)}%`}}></div>
               </div>
             </div>
           </div>
@@ -323,27 +288,22 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
       )}
 
       {/* Platforms */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
-        <div className="flex items-center mb-6">
-          <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg mr-3">
-            <GitBranch className="h-5 w-5 text-white" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-800">Coding Platforms</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Coding Platforms</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {codingProfile?.githubUsername && (
               <a 
                 href={codingProfile.githubUsername}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center p-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
               >
-                <Github className="h-6 w-6 mr-4 text-white" />
-                <div className="flex-1">
-                  <div className="font-semibold text-white">GitHub</div>
-                  <div className="text-sm text-gray-300 truncate">{codingProfile.githubUsername}</div>
+                <Github className="h-5 w-5 mr-3 text-gray-700" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm">GitHub</div>
+                  <div className="text-xs text-gray-600 truncate">{codingProfile.githubUsername}</div>
                 </div>
-                <ExternalLink className="h-5 w-5 text-gray-400" />
+                <ExternalLink className="h-4 w-4 text-gray-400" />
               </a>
             )}
             
@@ -352,14 +312,14 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
                 href={codingProfile.leetcodeUsername}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center p-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl hover:from-orange-400 hover:to-red-400 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-200 hover:border-orange-300 hover:shadow-md transition-all"
               >
-                <Code className="h-6 w-6 mr-4 text-white" />
-                <div className="flex-1">
-                  <div className="font-semibold text-white">LeetCode</div>
-                  <div className="text-sm text-orange-100 truncate">{codingProfile.leetcodeUsername}</div>
+                <Code className="h-5 w-5 mr-3 text-orange-600" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm">LeetCode</div>
+                  <div className="text-xs text-orange-700 truncate">{codingProfile.leetcodeUsername}</div>
                 </div>
-                <ExternalLink className="h-5 w-5 text-orange-200" />
+                <ExternalLink className="h-4 w-4 text-orange-400" />
               </a>
             )}
             
@@ -368,14 +328,14 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
                 href={codingProfile.codeforcesUsername}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all"
               >
-                <Trophy className="h-6 w-6 mr-4 text-white" />
-                <div className="flex-1">
-                  <div className="font-semibold text-white">Codeforces</div>
-                  <div className="text-sm text-blue-100 truncate">{codingProfile.codeforcesUsername}</div>
+                <Trophy className="h-5 w-5 mr-3 text-blue-600" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm">Codeforces</div>
+                  <div className="text-xs text-blue-700 truncate">{codingProfile.codeforcesUsername}</div>
                 </div>
-                <ExternalLink className="h-5 w-5 text-blue-200" />
+                <ExternalLink className="h-4 w-4 text-blue-400" />
               </a>
             )}
             
@@ -384,14 +344,14 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
                 href={codingProfile.hackerrankUsername}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center p-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-500 hover:to-emerald-500 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="flex items-center p-3 bg-green-50 rounded-lg border border-green-200 hover:border-green-300 hover:shadow-md transition-all"
               >
-                <Star className="h-6 w-6 mr-4 text-white" />
-                <div className="flex-1">
-                  <div className="font-semibold text-white">HackerRank</div>
-                  <div className="text-sm text-green-100 truncate">{codingProfile.hackerrankUsername}</div>
+                <Star className="h-5 w-5 mr-3 text-green-600" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm">HackerRank</div>
+                  <div className="text-xs text-green-700 truncate">{codingProfile.hackerrankUsername}</div>
                 </div>
-                <ExternalLink className="h-5 w-5 text-green-200" />
+                <ExternalLink className="h-4 w-4 text-green-400" />
               </a>
             )}
         </div>
@@ -399,16 +359,11 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
 
       {/* Languages */}
       {getLanguages().length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
-          <div className="flex items-center mb-6">
-            <div className="p-2 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg mr-3">
-              <Code className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800">Programming Languages</h3>
-          </div>
-          <div className="flex flex-wrap gap-3">
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Programming Languages</h3>
+          <div className="flex flex-wrap gap-2">
             {getLanguages().map((lang: string, index: number) => (
-              <span key={index} className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+              <span key={index} className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium border border-purple-200">
                 {lang}
               </span>
             ))}
@@ -417,53 +372,45 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
       )}
 
       {/* Achievements */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg mr-3">
-              <Award className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800">Achievements</h3>
-          </div>
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Achievements</h3>
           {isOwnProfile && (
             <Button 
               size="sm" 
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-              onClick={() => {
-                console.log('Add achievement button clicked')
-                setShowAchievementModal(true)
-              }}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg"
+              onClick={() => setShowAchievementModal(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Achievement
+              Add
             </Button>
           )}
         </div>
         <div>
           {achievements.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="space-y-3">
               {achievements.map((achievement) => (
-                <div key={achievement.id} className="flex items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 transform hover:scale-102">
-                  <div className="w-14 h-14 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                    <Trophy className="h-7 w-7 text-white" />
+                <div key={achievement.id} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <Trophy className="h-5 w-5 text-yellow-600" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-800 text-lg">{achievement.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">{achievement.description}</p>
-                    <p className="text-xs text-gray-500">
-                      🏆 Earned on {new Date(achievement.earnedAt).toLocaleDateString()}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900">{achievement.title}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{achievement.description}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(achievement.earnedAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-medium shadow-lg">
+                  <div className="flex items-center space-x-2 ml-3">
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
                       {achievement.type}
                     </span>
                     {isOwnProfile && (
                       <button
                         onClick={() => handleEditAchievement(achievement)}
-                        className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                        className="p-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors"
                       >
-                        <Edit3 className="h-4 w-4" />
+                        <Edit3 className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
@@ -471,12 +418,10 @@ export default function CodingProfile({ user, isOwnProfile = false }: CodingProf
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="h-10 w-10 text-gray-400" />
-              </div>
-              <p className="text-gray-500 text-lg">No achievements yet</p>
-              <p className="text-gray-400 text-sm">Start coding and unlock your first achievement! 🚀</p>
+            <div className="text-center py-8">
+              <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No achievements yet</p>
+              <p className="text-gray-400 text-sm mt-1">Start coding and add your first achievement</p>
             </div>
           )}
         </div>

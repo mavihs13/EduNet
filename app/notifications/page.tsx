@@ -36,5 +36,11 @@ export default async function NotificationsPage() {
     orderBy: { createdAt: 'desc' }
   })
 
-  return <NotificationsClient user={user} friendRequests={friendRequests} />
+  const notifications = await prisma.notification.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  })
+
+  return <NotificationsClient user={user} friendRequests={friendRequests} notifications={notifications} />
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Heart, MessageCircle, CheckCircle, Github } from 'lucide-react'
+import { Heart, MessageCircle, CheckCircle, Github, Sparkles } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 
 export default function LoginPage() {
@@ -55,82 +55,99 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex">
-      {/* Left Section - 40% */}
-      <div className="w-2/5 flex items-center justify-center relative overflow-hidden">
-        {/* Background Images Collage */}
-        <div className="relative w-80 h-96">
-          {/* Main Images */}
-          <div className="absolute top-0 left-0 w-48 h-64 rounded-2xl overflow-hidden shadow-2xl transform rotate-12 hover:rotate-6 transition-transform duration-500">
-            <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <span className="text-white text-6xl">📚</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      {/* Left Section - 45% */}
+      <div className="w-[45%] flex items-center justify-center relative z-10 p-12">
+        <div className="max-w-md">
+          {/* Logo & Tagline */}
+          <div className="mb-12">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-2xl">
+                <span className="text-3xl">📚</span>
+              </div>
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                EduNet
+              </h1>
             </div>
+            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+              Connect, Learn,
+              <br />
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Grow Together</span>
+            </h2>
+            <p className="text-gray-400 text-lg leading-relaxed">
+              Join thousands of developers sharing knowledge, solving problems, and building the future of tech education.
+            </p>
           </div>
-          
-          <div className="absolute top-8 right-0 w-40 h-56 rounded-2xl overflow-hidden shadow-2xl transform -rotate-6 hover:rotate-0 transition-transform duration-500">
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <span className="text-white text-5xl">💻</span>
+
+          {/* Feature Cards */}
+          <div className="space-y-4">
+            <div className="flex items-start space-x-4 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Real-time Collaboration</h3>
+                <p className="text-gray-400 text-sm">Chat, share code, and learn together in real-time</p>
+              </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-0 left-8 w-44 h-60 rounded-2xl overflow-hidden shadow-2xl transform rotate-3 hover:-rotate-3 transition-transform duration-500">
-            <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-              <span className="text-white text-5xl">🚀</span>
+            <div className="flex items-start space-x-4 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Track Your Progress</h3>
+                <p className="text-gray-400 text-sm">Achievements, coding stats, and skill development</p>
+              </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-4 right-4 w-36 h-48 rounded-2xl overflow-hidden shadow-2xl transform -rotate-12 hover:-rotate-6 transition-transform duration-500">
-            <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-white text-4xl">🎯</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Floating UI Elements */}
-        <Heart className="absolute top-20 left-20 w-8 h-8 text-red-500 animate-pulse" fill="currentColor" />
-        <MessageCircle className="absolute top-32 right-16 w-6 h-6 text-blue-400 animate-bounce" />
-        <CheckCircle className="absolute bottom-32 left-12 w-7 h-7 text-green-500 animate-pulse" fill="currentColor" />
-        <div className="absolute top-40 left-32 text-2xl animate-bounce">🔥</div>
-        <div className="absolute bottom-40 right-20 text-2xl animate-pulse">💜</div>
-        
-        {/* Rainbow Profile Ring */}
-        <div className="absolute top-16 right-32 w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-1 animate-spin-slow">
-          <div className="w-full h-full bg-black rounded-full flex items-center justify-center">
-            <span className="text-white text-xl">👤</span>
           </div>
         </div>
       </div>
       
-      {/* Right Section - 60% */}
-      <div className="w-3/5 flex items-center justify-center">
-        <div className="w-full max-w-sm">
-          {/* Instagram Logo */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-white" style={{ fontFamily: 'Billabong, cursive' }}>
-              EduNet
-            </h1>
-          </div>
+      {/* Right Section - 55% */}
+      <div className="w-[55%] flex items-center justify-center relative z-10 p-12">
+        <div className="w-full max-w-md">
+          {/* Card Container */}
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-10 shadow-2xl">
           
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoComplete="username"
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
-            />
-            
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors"
-            />
+            {/* Welcome Text */}
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
+              <p className="text-gray-400">Sign in to continue your learning journey</p>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all"
+                />
+              </div>
             
             {message && (
               <div className={`p-3 rounded text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}>
@@ -138,76 +155,68 @@ export default function LoginPage() {
               </div>
             )}
             
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#4e8fef' }}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Signing in...</span>
+                  </span>
+                ) : 'Sign In'}
+              </button>
+            </form>
+          
+            {/* OR Divider */}
+            <div className="flex items-center my-6">
+              <div className="flex-1 h-px bg-white/10"></div>
+              <span className="px-4 text-gray-400 text-sm font-medium">OR</span>
+              <div className="flex-1 h-px bg-white/10"></div>
+            </div>
+            
+            {/* GitHub Login */}
+            <button 
+              onClick={() => signIn('github', { callbackUrl: '/feed' })}
+              className="w-full flex items-center justify-center space-x-3 py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl transition-all font-medium"
             >
-              {loading ? 'Logging in...' : 'Log in'}
+              <Github className="w-5 h-5" />
+              <span>Continue with GitHub</span>
             </button>
-          </form>
-          
-          {/* OR Divider */}
-          <div className="flex items-center my-6">
-            <div className="flex-1 h-px bg-gray-700"></div>
-            <span className="px-4 text-gray-400 text-sm font-semibold">OR</span>
-            <div className="flex-1 h-px bg-gray-700"></div>
-          </div>
-          
-          {/* GitHub Login */}
-          <button 
-            onClick={() => signIn('github', { callbackUrl: '/feed' })}
-            className="w-full flex items-center justify-center space-x-2 py-3 text-gray-300 hover:text-white transition-colors border border-gray-700 rounded hover:border-gray-600"
-          >
-            <Github className="w-5 h-5" />
-            <span className="font-semibold">Continue with GitHub</span>
-          </button>
-          
-          {/* Forgot Password */}
-          <div className="text-center mt-6">
-            <Link href="/forgot-password" className="text-white text-sm hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          
-          {/* Sign Up Link */}
-          <div className="text-center mt-8 pt-8 border-t border-gray-800">
-            <span className="text-gray-400 text-sm">
-              Don't have an account?{' '}
-              <Link href="/register" className="text-blue-400 hover:text-blue-300 font-semibold">
-                Sign up
+            
+            {/* Forgot Password */}
+            <div className="text-center mt-6">
+              <Link href="/forgot-password" className="text-gray-400 hover:text-white text-sm transition-colors">
+                Forgot password?
               </Link>
-            </span>
+            </div>
+            
+            {/* Sign Up Link */}
+            <div className="text-center mt-8 pt-6 border-t border-white/10">
+              <span className="text-gray-400">
+                New to EduNet?{' '}
+                <Link href="/register" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
+                  Create account
+                </Link>
+              </span>
+            </div>
           </div>
         </div>
       </div>
       
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap justify-center space-x-4 text-xs text-gray-500 mb-4">
-            <a href="#" className="hover:underline">Mavi</a>
-            <a href="#" className="hover:underline">About</a>
-            <a href="#" className="hover:underline">Blog</a>
-            <a href="#" className="hover:underline">Jobs</a>
-            <a href="#" className="hover:underline">Help</a>
-            <a href="#" className="hover:underline">API</a>
-            <a href="#" className="hover:underline">Privacy</a>
-            <a href="#" className="hover:underline">Terms</a>
-            <a href="#" className="hover:underline">Locations</a>
-            <a href="#" className="hover:underline">EduNet Lite</a>
-            <a href="#" className="hover:underline">Mavi AI</a>
-            <a href="#" className="hover:underline">Threads</a>
-            <a href="#" className="hover:underline">Contact</a>
-            <a href="#" className="hover:underline">Mavi Verified</a>
+      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+        <div className="text-center">
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 mb-3">
+            <a href="#" className="hover:text-gray-300 transition-colors">About</a>
+            <a href="#" className="hover:text-gray-300 transition-colors">Blog</a>
+            <a href="#" className="hover:text-gray-300 transition-colors">Help</a>
+            <a href="#" className="hover:text-gray-300 transition-colors">API</a>
+            <a href="#" className="hover:text-gray-300 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-gray-300 transition-colors">Terms</a>
           </div>
-          <div className="flex justify-center items-center space-x-4 text-xs text-gray-500">
-            <span>© 2025 EduNet from Mavi</span>
-            <select className="bg-transparent border-none text-gray-500 text-xs">
-              <option>English</option>
-            </select>
-          </div>
+          <p className="text-xs text-gray-600">© 2025 EduNet. All rights reserved.</p>
         </div>
       </div>
     </div>

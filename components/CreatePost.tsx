@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Image, MapPin, Smile, Calendar, BarChart3, X, Globe } from 'lucide-react'
+import { Image, MapPin, Smile, Calendar, BarChart3, X, Globe, Code2, Sparkles } from 'lucide-react'
 
 interface CreatePostProps {
   user: any

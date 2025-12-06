@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       media
     })
 
+    // Broadcast new post to followers
+    if (global.io) {
+      global.io.emit('new_post', post)
+    }
+
     return NextResponse.json(post)
   } catch (error) {
     console.error('Post creation error:', error)

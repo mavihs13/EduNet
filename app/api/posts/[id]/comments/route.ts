@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
+import { notifyComment } from '@/lib/notifications'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const comments = await prisma.comment.findMany({
+      where: { postId: params.id },
+      include: {
+        user: { include: { profile: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return NextResponse.json(comments)
+  } catch (error) {
+    return NextResponse.json({ message: 'Failed to fetch comments' }, { status: 500 })
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -28,6 +48,19 @@ export async function POST(
         user: { include: { profile: true } }
       }
     })
+
+    const post = await prisma.post.findUnique({ where: { id: params.id } })
+    if (post && post.userId !== payload.userId) {
+      await notifyComment(params.id, post.userId, {
+        id: comment.user.id,
+        name: comment.user.profile?.name,
+        username: comment.user.username
+      }, content)
+    }
+
+    if (global.io) {
+      global.io.to(`post_${params.id}`).emit('new_comment', comment)
+    }
 
     return NextResponse.json(comment)
   } catch (error) {

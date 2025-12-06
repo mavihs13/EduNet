@@ -352,7 +352,7 @@ export const messageCrud = {
 
 // Notification CRUD
 export const notificationCrud = {
-  create: async (data: { userId: string; type: string; title: string; content: string }) => {
+  create: async (data: { userId: string; type: string; title: string; content: string; metadata?: string }) => {
     if (!data.userId || !data.type || !data.title || !data.content) {
       throw new Error('All notification fields are required')
     }

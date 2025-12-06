@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { userCrud } from '@/lib/crud'
-import CodingProfile from '@/components/CodingProfile'
+import CodingProfileClient from './CodingProfileClient'
 
 export default async function CodingProfilePage() {
   const cookieStore = cookies()
@@ -23,11 +23,5 @@ export default async function CodingProfilePage() {
     redirect('/login')
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <CodingProfile user={user} isOwnProfile={true} />
-      </div>
-    </div>
-  )
+  return <CodingProfileClient user={user} />
 }

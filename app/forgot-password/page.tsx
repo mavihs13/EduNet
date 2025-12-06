@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Mail, Lock, ArrowLeft, CheckCircle } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -46,112 +44,150 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
-        
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-          <CardHeader className="text-center pb-8">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-gradient-to-r from-green-500 to-blue-600 p-3 rounded-2xl shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
+
+        <div className="w-full max-w-md px-4 relative z-10">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center space-x-3 mb-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-2xl">
+                <span className="text-2xl">📚</span>
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                EduNet
+              </h1>
+            </div>
+          </div>
+          
+          {/* Success Card */}
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-10 shadow-2xl">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full mb-6 shadow-lg">
+                <CheckCircle className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-3">Check Your Email</h2>
+              <p className="text-gray-400">Reset link sent successfully</p>
+            </div>
+            
+            <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10">
+              <div className="flex items-start space-x-3">
+                <Mail className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white font-medium mb-1">Email sent to:</p>
+                  <p className="text-gray-400 text-sm break-all">{email}</p>
+                </div>
               </div>
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-              Check Your Email
-            </CardTitle>
-            <p className="text-white/70 mt-2">Reset link sent successfully</p>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="mb-6 text-white/70">We've sent a password reset link to {email}</p>
+
             {resetToken ? (
               <div className="mb-6">
-                <p className="mb-3 text-white/60 text-sm">Email not configured. Use this development link:</p>
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+                  <p className="text-yellow-400 text-sm text-center">⚠️ Development Mode: Email not configured</p>
+                </div>
                 <Link 
                   href={`/reset-password?token=${resetToken}`}
-                  className="inline-block w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-emerald-500/25 transform hover:scale-[1.02] hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group border border-white/20"
+                  className="block w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold rounded-xl text-center transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20 opacity-60"></div>
-                  <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-2xl"></div>
-                  <span className="relative z-10 drop-shadow-lg">Reset Password Now</span>
+                  Reset Password Now
                 </Link>
               </div>
             ) : (
-              <p className="mb-6 text-white/60 text-sm">Please check your email and click the reset link to continue.</p>
+              <p className="text-gray-400 text-sm text-center mb-6">Please check your email and click the reset link to continue.</p>
             )}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 transition-colors duration-200">
-              Back to Login
-            </Link>
-          </CardContent>
-        </Card>
+            
+            <div className="text-center pt-6 border-t border-white/10">
+              <Link href="/login" className="inline-flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Login</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"></div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
-      
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-        <CardHeader className="text-center pb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-r from-orange-500 to-red-600 p-3 rounded-2xl shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+
+      <div className="w-full max-w-md px-4 relative z-10">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-3 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-2xl">
+              <span className="text-2xl">📚</span>
             </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+              EduNet
+            </h1>
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-            Reset Password
-          </CardTitle>
-          <p className="text-white/70 mt-2">Enter your email to reset password</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-orange-400 transition-all duration-300"
-              />
+        </div>
+        
+        {/* Form Card */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-10 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full mb-6 shadow-lg">
+              <Lock className="w-8 h-8 text-white" />
             </div>
+            <h2 className="text-3xl font-bold text-white mb-3">Forgot Password?</h2>
+            <p className="text-gray-400">No worries, we'll send you reset instructions</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+            
             {message && (
-              <div className={`p-3 rounded-lg text-sm ${messageType === 'success' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
+              <div className={`p-4 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-500/10 text-green-300 border border-green-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
                 {message}
               </div>
             )}
+            
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-blue-500/25 transform hover:scale-[1.02] hover:-translate-y-1 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group border border-white/20"
+              className="w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20 opacity-60"></div>
-              <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-2xl"></div>
-              <span className="relative z-10 drop-shadow-lg">
-                {loading ? 'Sending...' : 'Send Reset Link'}
-              </span>
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Sending...</span>
+                </span>
+              ) : 'Send Reset Link'}
             </button>
           </form>
-          <div className="mt-6 text-center">
-            <Link href="/login" className="text-orange-400 hover:text-orange-300 text-sm transition-colors duration-200">
-              Back to Login
+          
+          <div className="text-center mt-8 pt-6 border-t border-white/10">
+            <Link href="/login" className="inline-flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Login</span>
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

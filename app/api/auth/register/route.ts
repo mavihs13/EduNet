@@ -33,15 +33,18 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const whereConditions = [{ username }, { email }]
-    
-    const existingUser = await prisma.user.findFirst({
-      where: { OR: whereConditions }
-    })
-
-    if (existingUser) {
+    const existingEmail = await prisma.user.findUnique({ where: { email } })
+    if (existingEmail) {
       return NextResponse.json(
-        { success: false, message: 'User with this email, phone, or username already exists' },
+        { success: false, message: 'Email already exists' },
+        { status: 400 }
+      )
+    }
+
+    const existingUsername = await prisma.user.findUnique({ where: { username } })
+    if (existingUsername) {
+      return NextResponse.json(
+        { success: false, message: 'Username already taken' },
         { status: 400 }
       )
     }
@@ -56,6 +59,10 @@ export async function POST(request: NextRequest) {
         profile: {
           create: {
             name: username,
+            bio: 'New to EduNet! 🚀',
+            isPrivate: false,
+            skills: '',
+            location: ''
           }
         }
       },

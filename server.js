@@ -37,6 +37,9 @@ app.prepare().then(() => {
     }
   })
 
+  // Make io available globally
+  global.io = io
+
   redis.connect().catch(console.error)
 
   const userSockets = new Map()
@@ -55,7 +58,6 @@ app.prepare().then(() => {
     console.log('User connected:', socket.id)
 
     socket.on('join', (userId) => {
-      // Validate userId format
       if (!userId || typeof userId !== 'string' || userId.length > 50) {
         socket.emit('error', 'Invalid user ID')
         return
@@ -64,9 +66,33 @@ app.prepare().then(() => {
       userSockets.set(userId, socket.id)
       socket.userId = userId
       socket.join(`user_${userId}`)
-      
-      // Notify friends that user is online
       socket.broadcast.emit('user_online', userId)
+    })
+
+    socket.on('join_post', (postId) => {
+      if (postId && typeof postId === 'string') {
+        socket.join(`post_${postId}`)
+      }
+    })
+
+    socket.on('leave_post', (postId) => {
+      if (postId && typeof postId === 'string') {
+        socket.leave(`post_${postId}`)
+      }
+    })
+
+    socket.on('typing', (data) => {
+      const { receiverId } = data
+      if (receiverId && socket.userId) {
+        io.to(`user_${receiverId}`).emit('user_typing', { userId: socket.userId })
+      }
+    })
+
+    socket.on('stop_typing', (data) => {
+      const { receiverId } = data
+      if (receiverId && socket.userId) {
+        io.to(`user_${receiverId}`).emit('user_stop_typing', { userId: socket.userId })
+      }
     })
 
     socket.on('send_message', async (data) => {
@@ -142,6 +168,21 @@ app.prepare().then(() => {
         await redis.lpush(`notifications:${userId}`, JSON.stringify(notification))
       } catch (error) {
         console.error('Error sending notification:', error)
+      }
+    })
+
+    socket.on('mark_notification_read', async (notificationId) => {
+      if (!notificationId || !socket.userId) return
+      try {
+        const { PrismaClient } = require('@prisma/client')
+        const prisma = new PrismaClient()
+        await prisma.notification.update({
+          where: { id: notificationId },
+          data: { read: true }
+        })
+        socket.emit('notification_marked_read', notificationId)
+      } catch (error) {
+        console.error('Mark notification read error:', error)
       }
     })
 

@@ -36,6 +36,9 @@ model User {
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   
+  sentMessageRequests     MessageRequest[] @relation("SentMessageRequests")
+  receivedMessageRequests MessageRequest[] @relation("ReceivedMessageRequests")
+  
   notifications Notification[]
   saves Save[]
   stories Story[]
@@ -155,12 +158,26 @@ model Message {
 
 }
 
+model MessageRequest {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending") // pending, accepted, rejected
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessageRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessageRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
 model Notification {
   id        String   @id @default(cuid())
   userId    String
   type      String
   title     String
   content   String
+  metadata  String?  // JSON string for additional data
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 

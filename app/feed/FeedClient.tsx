@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Share, MoreHorizontal, Home, Search, Bell, User, LogOut, Plus, X, Code, Image, Smile, Hash, Upload, Trash2, BarChart3, MapPin, Send, Copy, Link2, MessageSquare, Bookmark, Flag, UserMinus, ExternalLink, Edit3, Star, Camera, Type, ChevronLeft, ChevronRight, Eye, Menu, Users, Play, Pause } from 'lucide-react'
+import { Heart, MessageCircle, Share, Home, Search, Bell, Plus, Code, Menu, LogOut, Settings, X, Lock, Globe, User as UserIcon, MoreVertical, Edit, Trash2, Image as ImageIcon, Video, Smile, AtSign, Hash, MapPin, Moon, Sun, Send, Check, CheckCheck, Minimize2, Phone, VideoIcon, Mic, StopCircle, Play, PhoneOff, Reply, Paperclip } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import CodeViewer from '@/components/CodeViewer'
 import Link from 'next/link'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface FeedClientProps {
   user: any
@@ -14,248 +15,104 @@ interface FeedClientProps {
 }
 
 export default function FeedClient({ user, initialPosts }: FeedClientProps) {
+  const { theme, toggleTheme } = useTheme()
   const [posts, setPosts] = useState(initialPosts)
-  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [postContent, setPostContent] = useState('')
-  const [postCode, setPostCode] = useState('')
-  const [postLanguage, setPostLanguage] = useState('javascript')
-  const [postTags, setPostTags] = useState('')
-  const [selectedMedia, setSelectedMedia] = useState<File[]>([])
+  const [loading, setLoading] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([])
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [showPollCreator, setShowPollCreator] = useState(false)
-  const [pollQuestion, setPollQuestion] = useState('')
-  const [pollOptions, setPollOptions] = useState(['', ''])
-  const [pollDuration, setPollDuration] = useState('24')
-  const [isDragging, setIsDragging] = useState(false)
-  const [showComments, setShowComments] = useState<{[key: string]: boolean}>({})
-  const [commentText, setCommentText] = useState<{[key: string]: string}>({})
-  const [showShareMenu, setShowShareMenu] = useState<{[key: string]: boolean}>({})
-  const [showPostMenu, setShowPostMenu] = useState<{[key: string]: boolean}>({})
-  const [editingPost, setEditingPost] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [storyGroups, setStoryGroups] = useState<any[]>([])
-  const [showStoryViewer, setShowStoryViewer] = useState(false)
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
-  const [currentUserIndex, setCurrentUserIndex] = useState(0)
-  const [showCreateStory, setShowCreateStory] = useState(false)
-  const [storyContent, setStoryContent] = useState('')
-  const [storyMedia, setStoryMedia] = useState('')
-  const [storyType, setStoryType] = useState<'text' | 'image'>('text')
-  const [uploadingStory, setUploadingStory] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
-  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [profileSuggestions, setProfileSuggestions] = useState<any[]>([])
-  const [profileStats, setProfileStats] = useState({ posts: 0, followers: 0, following: 0 })
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(user.profile?.isPrivate || false)
+  const [showPostMenu, setShowPostMenu] = useState<string | null>(null)
+  const [editingPost, setEditingPost] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [activeTab, setActiveTab] = useState<'text' | 'code'>('text')
+  const [codeLanguage, setCodeLanguage] = useState('javascript')
+  const [codeContent, setCodeContent] = useState('')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [selectedChat, setSelectedChat] = useState<any>(null)
+  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const [newMessage, setNewMessage] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [showCallModal, setShowCallModal] = useState(false)
+  const [callType, setCallType] = useState<'voice' | 'video' | null>(null)
+  const [showReactions, setShowReactions] = useState<string | null>(null)
+  const [replyTo, setReplyTo] = useState<any>(null)
+  const [selectedMedia, setSelectedMedia] = useState<File | null>(null)
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null)
+  const [showComments, setShowComments] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
+  const [postComments, setPostComments] = useState<{[key: string]: any[]}>({}) 
+  const [commentLoading, setCommentLoading] = useState(false) 
+  const emojis = ['😊', '❤️', '🎉', '🚀', '💡', '🔥', '👍', '✨', '💻', '📚', '🎯', '⚡']
+  const reactionEmojis = ['❤️', '😂', '😮', '😢', '😡', '👍', '👎']
 
   useEffect(() => {
-    const theme = localStorage.getItem('theme')
-    setIsDarkMode(theme === 'dark')
-  }, [])
-
-  const toggleTheme = () => {
-    const newTheme = !isDarkMode ? 'dark' : 'light'
-    setIsDarkMode(!isDarkMode)
-    localStorage.setItem('theme', newTheme)
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }
-
-  useEffect(() => {
-    fetchStories()
-    fetchUnreadNotifications()
-    fetchProfileSuggestions()
-    fetchProfileStats()
-    const theme = localStorage.getItem('theme')
-    const isDark = theme === 'dark'
-    setIsDarkMode(isDark)
-    if (isDark) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    const openChatData = localStorage.getItem('openChat')
+    if (openChatData) {
+      try {
+        const chatUser = JSON.parse(openChatData)
+        const conversation = {
+          id: chatUser.userId,
+          user: {
+            id: chatUser.userId,
+            username: chatUser.username,
+            profile: { name: chatUser.name, avatar: chatUser.avatar }
+          },
+          lastMessage: { content: '', createdAt: new Date(), read: true },
+          unreadCount: 0,
+          online: false
+        }
+        handleOpenChat(conversation)
+        localStorage.removeItem('openChat')
+      } catch (error) {
+        console.error('Failed to open chat:', error)
+      }
     }
   }, [])
-
-  const fetchProfileSuggestions = async () => {
-    try {
-      const res = await fetch('/api/search/users?suggestions=true')
-      if (res.ok) {
-        const users = await res.json()
-        setProfileSuggestions(users)
-      }
-    } catch (error) {
-      console.error('Failed to fetch suggestions:', error)
+  
+  // Dummy conversations
+  const dummyConversations = [
+    {
+      id: '1',
+      user: { id: 'u1', username: 'sarah_dev', profile: { name: 'Sarah Johnson', avatar: null } },
+      lastMessage: { content: 'Hey! Did you check out that React tutorial?', createdAt: new Date(Date.now() - 5 * 60000), read: true },
+      unreadCount: 0,
+      online: true
+    },
+    {
+      id: '2',
+      user: { id: 'u2', username: 'mike_codes', profile: { name: 'Mike Chen', avatar: null } },
+      lastMessage: { content: 'Thanks for the help with the algorithm!', createdAt: new Date(Date.now() - 30 * 60000), read: false },
+      unreadCount: 2,
+      online: true
+    },
+    {
+      id: '3',
+      user: { id: 'u3', username: 'emma_tech', profile: { name: 'Emma Wilson', avatar: null } },
+      lastMessage: { content: 'See you at the coding meetup! 🚀', createdAt: new Date(Date.now() - 2 * 60 * 60000), read: true },
+      unreadCount: 0,
+      online: false
+    },
+    {
+      id: '4',
+      user: { id: 'u4', username: 'alex_py', profile: { name: 'Alex Rodriguez', avatar: null } },
+      lastMessage: { content: 'That Python script worked perfectly!', createdAt: new Date(Date.now() - 24 * 60 * 60000), read: true },
+      unreadCount: 0,
+      online: false
     }
-  }
-
-  const fetchProfileStats = async () => {
-    try {
-      const res = await fetch('/api/profile/stats')
-      if (res.ok) {
-        const data = await res.json()
-        setProfileStats(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch profile stats:', error)
-    }
-  }
-
-  const fetchUnreadNotifications = async () => {
-    try {
-      const res = await fetch('/api/notifications?unreadOnly=true')
-      if (res.ok) {
-        const data = await res.json()
-        setUnreadNotifications(data.count || 0)
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error)
-    }
-  }
-
-  const fetchStories = async () => {
-    try {
-      const res = await fetch('/api/stories')
-      if (res.ok) {
-        const data = await res.json()
-        setStoryGroups(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch stories:', error)
-    }
-  }
-
-  const handleCreateStory = async () => {
-    if (!storyContent.trim() && !storyMedia) return
-    
-    try {
-      const res = await fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: storyContent,
-          mediaUrl: storyMedia,
-          mediaType: storyType === 'image' ? 'image' : null
-        })
-      })
-
-      if (res.ok) {
-        setShowCreateStory(false)
-        setStoryContent('')
-        setStoryMedia('')
-        setStoryType('text')
-        fetchStories()
-        showNotification('Story created! 📸', 'success')
-      }
-    } catch (error) {
-      showNotification('Failed to create story', 'error')
-    }
-  }
-
-  const handleDeleteStory = async (storyId: string) => {
-    if (!confirm('Delete this story?')) return
-    
-    try {
-      const res = await fetch(`/api/stories/${storyId}`, {
-        method: 'DELETE'
-      })
-      
-      if (res.ok) {
-        fetchStories()
-        setShowStoryViewer(false)
-        showNotification('Story deleted! 🗑️', 'success')
-      }
-    } catch (error) {
-      showNotification('Failed to delete story', 'error')
-    }
-  }
-
-  const handleStoryMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    setUploadingStory(true)
-    try {
-      const formData = new FormData()
-      formData.append('avatar', file)
-
-      const res = await fetch('/api/upload/avatar', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        setStoryMedia(data.avatarUrl)
-        setStoryType('image')
-      }
-    } catch (error) {
-      showNotification('Failed to upload media', 'error')
-    } finally {
-      setUploadingStory(false)
-    }
-  }
-
-  const openStoryViewer = (userIndex: number) => {
-    setCurrentUserIndex(userIndex)
-    setCurrentStoryIndex(0)
-    setShowStoryViewer(true)
-    markStoryAsViewed(storyGroups[userIndex].stories[0].id)
-  }
-
-  const markStoryAsViewed = async (storyId: string) => {
-    try {
-      await fetch('/api/stories/view', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storyId })
-      })
-    } catch (error) {
-      console.error('Failed to mark story as viewed:', error)
-    }
-  }
-
-  const nextStory = () => {
-    const currentGroup = storyGroups[currentUserIndex]
-    if (currentStoryIndex < currentGroup.stories.length - 1) {
-      const newIndex = currentStoryIndex + 1
-      setCurrentStoryIndex(newIndex)
-      markStoryAsViewed(currentGroup.stories[newIndex].id)
-    } else if (currentUserIndex < storyGroups.length - 1) {
-      const newUserIndex = currentUserIndex + 1
-      setCurrentUserIndex(newUserIndex)
-      setCurrentStoryIndex(0)
-      markStoryAsViewed(storyGroups[newUserIndex].stories[0].id)
-    } else {
-      setShowStoryViewer(false)
-    }
-  }
-
-  const prevStory = () => {
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1)
-    } else if (currentUserIndex > 0) {
-      const newUserIndex = currentUserIndex - 1
-      setCurrentUserIndex(newUserIndex)
-      setCurrentStoryIndex(storyGroups[newUserIndex].stories.length - 1)
-    }
-  }
+  ]
 
   const handleLike = async (postId: string) => {
     try {
-      const res = await fetch(`/api/posts/${postId}/like`, {
-        method: 'POST',
-      })
-      
+      const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST' })
       if (res.ok) {
-        const data = await res.json()
         setPosts(posts.map(post => {
           if (post.id === postId) {
             const isLiked = post.likes.some((like: any) => like.userId === user.id)
@@ -272,14 +129,80 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
           }
           return post
         }))
-        
-        // Update notification count if someone liked our post
-        if (data.liked && data.notificationCreated) {
-          fetchUnreadNotifications()
-        }
       }
     } catch (error) {
       console.error('Failed to like post:', error)
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    setSelectedFiles(prev => [...prev, ...files].slice(0, 4))
+    
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setMediaPreviews(prev => [...prev, e.target?.result as string].slice(0, 4))
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeMedia = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setMediaPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleCreatePost = async () => {
+    if (!postContent.trim() && selectedFiles.length === 0 && !codeContent.trim()) return
+    setLoading(true)
+    try {
+      let mediaUrls: any[] = []
+      
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const formData = new FormData()
+          formData.append('avatar', file)
+          const uploadRes = await fetch('/api/upload/avatar', {
+            method: 'POST',
+            body: formData
+          })
+          if (uploadRes.ok) {
+            const data = await uploadRes.json()
+            mediaUrls.push({
+              url: data.avatarUrl,
+              type: file.type.startsWith('video') ? 'video' : 'image'
+            })
+          }
+        }
+      }
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: postContent,
+          media: mediaUrls.length > 0 ? mediaUrls : null,
+          code: codeContent.trim() || null,
+          language: codeContent.trim() ? codeLanguage : null
+        })
+      })
+      if (res.ok) {
+        const newPost = await res.json()
+        setPosts([newPost, ...posts])
+        setPostContent('')
+        setCodeContent('')
+        setSelectedFiles([])
+        setMediaPreviews([])
+        setActiveTab('text')
+        setShowCreateModal(false)
+      }
+    } catch (error) {
+      console.error('Failed to create post:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -288,331 +211,12 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
     window.location.href = '/login'
   }
 
-  const handleCreatePost = async () => {
-    if (!postContent.trim() && !postCode.trim() && selectedMedia.length === 0 && (!showPollCreator || !pollQuestion.trim())) return
-
-    try {
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: postContent || null,
-          code: postCode || null,
-          language: postCode ? postLanguage : null,
-          tags: postTags || null,
-          media: mediaPreviews.length > 0 ? mediaPreviews.map((url, index) => ({
-            url,
-            type: selectedMedia[index]?.type?.startsWith('video') ? 'video' : 'image'
-          })) : null
-        })
-      })
-
-      if (res.ok) {
-        const newPost = await res.json()
-        setPosts([newPost, ...posts])
-        fetchProfileStats()
-        resetUploadModal()
-      } else {
-        console.error('Failed to create post:', await res.text())
-      }
-    } catch (error) {
-      console.error('Failed to create post:', error)
-    }
-  }
-
-  const resetUploadModal = () => {
-    setShowUploadModal(false)
-    setPostContent('')
-    setPostCode('')
-    setPostTags('')
-    setSelectedMedia([])
-    setMediaPreviews([])
-    setShowEmojiPicker(false)
-    setShowPollCreator(false)
-    setPollQuestion('')
-    setPollOptions(['', ''])
-    setPollDuration('24')
-    setShowComments({})
-    setCommentText({})
-    setShowShareMenu({})
-    setShowPostMenu({})
-    setEditingPost(null)
-    setEditContent('')
-  }
-
-  const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || [])
-    if (files.length === 0) return
-
-    const newFiles = [...selectedMedia, ...files].slice(0, 4) // Max 4 files
-    setSelectedMedia(newFiles)
-
-    // Create previews
-    const newPreviews = [...mediaPreviews]
-    files.forEach((file, index) => {
-      if (mediaPreviews.length + index < 4) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          newPreviews.push(e.target?.result as string)
-          setMediaPreviews([...newPreviews])
-        }
-        reader.readAsDataURL(file)
-      }
-    })
-  }
-
-  const removeMedia = (index: number) => {
-    const newMedia = selectedMedia.filter((_, i) => i !== index)
-    const newPreviews = mediaPreviews.filter((_, i) => i !== index)
-    setSelectedMedia(newMedia)
-    setMediaPreviews(newPreviews)
-  }
-
-  const insertEmoji = (emoji: string) => {
-    setPostContent(prev => prev + emoji)
-    setShowEmojiPicker(false)
-  }
-
-  const addPollOption = () => {
-    if (pollOptions.length < 4) {
-      setPollOptions([...pollOptions, ''])
-    }
-  }
-
-  const removePollOption = (index: number) => {
-    if (pollOptions.length > 2) {
-      setPollOptions(pollOptions.filter((_, i) => i !== index))
-    }
-  }
-
-  const updatePollOption = (index: number, value: string) => {
-    const newOptions = [...pollOptions]
-    newOptions[index] = value
-    setPollOptions(newOptions)
-  }
-
-  const emojis = ['😀', '😂', '🥰', '😎', '🤔', '👍', '❤️', '🔥', '💯', '🚀', '💻', '📚', '🎯', '✨', '🌟', '💡', '🎉', '👏', '🙌', '💪']
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    const imageFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'))
-    
-    if (imageFiles.length > 0) {
-      const newFiles = [...selectedMedia, ...imageFiles].slice(0, 4)
-      setSelectedMedia(newFiles)
-      
-      imageFiles.forEach((file, index) => {
-        if (mediaPreviews.length + index < 4) {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            setMediaPreviews(prev => [...prev, e.target?.result as string])
-          }
-          reader.readAsDataURL(file)
-        }
-      })
-    }
-  }
-
-  const toggleComments = (postId: string) => {
-    setShowComments(prev => ({ ...prev, [postId]: !prev[postId] }))
-  }
-
-  const handleComment = async (postId: string) => {
-    const content = commentText[postId]?.trim()
-    if (!content) return
-
-    try {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, content })
-      })
-      
-      if (res.ok) {
-        const data = await res.json()
-        setPosts(posts.map(post => {
-          if (post.id === postId) {
-            return {
-              ...post,
-              comments: [data.comment, ...post.comments],
-              _count: { ...post._count, comments: post._count.comments + 1 }
-            }
-          }
-          return post
-        }))
-        setCommentText(prev => ({ ...prev, [postId]: '' }))
-        
-        // Update notification count if we commented on someone's post
-        if (data.notificationCreated) {
-          fetchUnreadNotifications()
-        }
-      }
-    } catch (error) {
-      console.error('Failed to add comment:', error)
-    }
-  }
-
-  const handleShare = async (postId: string, type: string) => {
-    const url = `${window.location.origin}/post/${postId}`
-    const text = 'Check out this amazing post on EduNet! 🚀'
-    
-    try {
-      switch(type) {
-        case 'copy':
-          await navigator.clipboard.writeText(url)
-          showNotification('Link copied to clipboard! 📋', 'success')
-          break
-        case 'message':
-          showNotification('Direct message feature coming soon! 💬', 'info')
-          break
-        case 'story':
-          showNotification('Add to story feature coming soon! 📸', 'info')
-          break
-        case 'facebook':
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400')
-          break
-        case 'twitter':
-          window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}&hashtags=EduNet,Coding,Learning`, '_blank', 'width=600,height=400')
-          break
-        case 'whatsapp':
-          window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n\n' + url)}`, '_blank')
-          break
-        case 'telegram':
-          window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank')
-          break
-        case 'email':
-          window.open(`mailto:?subject=${encodeURIComponent('Amazing Post from EduNet')}&body=${encodeURIComponent(text + '\n\n' + url + '\n\nShared via EduNet - The Educational Social Platform')}`, '_blank')
-          break
-      }
-    } catch (error) {
-      showNotification('Sharing failed. Please try again.', 'error')
-    }
-    
-    setShowShareMenu(prev => ({ ...prev, [postId]: false }))
-  }
-
-  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
-    const notification = document.createElement('div')
-    notification.className = `fixed top-20 right-4 z-50 px-6 py-3 rounded-2xl text-white font-medium shadow-2xl transform transition-all duration-300 ${
-      type === 'success' ? 'bg-green-500' :
-      type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-    }`
-    notification.textContent = message
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      notification.style.transform = 'translateX(100%)'
-      setTimeout(() => notification.remove(), 300)
-    }, 3000)
-  }
-
-  const handleSavePost = async (postId: string) => {
-    try {
-      const res = await fetch('/api/posts/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId })
-      })
-      
-      if (res.ok) {
-        const data = await res.json()
-        setPosts(posts.map(post => {
-          if (post.id === postId) {
-            const isSaved = post.saves?.some((save: any) => save.userId === user.id)
-            const isOwnPost = post.user.id === user.id
-            return {
-              ...post,
-              saves: isSaved 
-                ? post.saves.filter((save: any) => save.userId !== user.id)
-                : [...(post.saves || []), { userId: user.id }],
-              _count: {
-                ...post._count,
-                saves: isOwnPost ? (post._count.saves || 0) : 
-                       isSaved ? (post._count.saves || 1) - 1 : (post._count.saves || 0) + 1
-              }
-            }
-          }
-          return post
-        }))
-        showNotification(data.saved ? 'Post saved! ⭐' : 'Post unsaved', 'success')
-      }
-    } catch (error) {
-      showNotification('Failed to save post', 'error')
-    }
-  }
-
-  const canEditPost = (createdAt: string) => {
-    const postTime = new Date(createdAt).getTime()
-    const now = new Date().getTime()
-    const thirtyMinutes = 30 * 60 * 1000
-    return (now - postTime) < thirtyMinutes
-  }
-
-  const handleEditPost = (post: any) => {
-    setEditingPost(post.id)
-    setEditContent(post.content || '')
-    setShowPostMenu(prev => ({ ...prev, [post.id]: false }))
-  }
-
-  const saveEditPost = async (postId: string) => {
-    try {
-      const res = await fetch(`/api/posts/${postId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editContent })
-      })
-      
-      if (res.ok) {
-        setPosts(posts.map(post => 
-          post.id === postId ? { ...post, content: editContent } : post
-        ))
-        setEditingPost(null)
-        setEditContent('')
-        showNotification('Post updated successfully! ✏️', 'success')
-      }
-    } catch (error) {
-      showNotification('Failed to update post', 'error')
-    }
-  }
-
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return
-    
-    try {
-      const res = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE'
-      })
-      
-      if (res.ok) {
-        setPosts(posts.filter(post => post.id !== postId))
-        showNotification('Post deleted successfully! 🗑️', 'success')
-      }
-    } catch (error) {
-      showNotification('Failed to delete post', 'error')
-    }
-    
-    setShowPostMenu(prev => ({ ...prev, [postId]: false }))
-  }
-
-  async function handleSearch(query: string) {
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query)
     if (!query.trim()) {
       setSearchResults([])
       return
     }
-
     setSearchLoading(true)
     try {
       const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`)
@@ -627,258 +231,375 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
     }
   }
 
-  async function toggleFollow(userId: string) {
+  const handleFollow = async (userId: string) => {
     try {
       const res = await fetch('/api/follow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ followingId: userId })
       })
-      
       if (res.ok) {
         const data = await res.json()
-        setSearchResults(prev => prev.map(user => 
-          user.id === userId ? { ...user, isFollowing: data.following } : user
+        setSearchResults(prev => prev.map(u => 
+          u.id === userId ? { ...u, isFollowing: data.following } : u
         ))
-        setProfileSuggestions(prev => prev.map(user => 
-          user.id === userId ? { ...user, isFollowing: data.following } : user
-        ))
-        fetchProfileStats()
-        
-        if (data.following && data.notificationCreated) {
-          fetchUnreadNotifications()
-        }
       }
     } catch (error) {
-      console.error('Failed to toggle follow:', error)
+      console.error('Follow failed:', error)
     }
   }
 
-  const UserCard = ({ user, onFollow, showStats = false }: { user: any, onFollow: (id: string) => void, showStats?: boolean }) => (
-    <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 hover:border-purple-400/30 transition-all">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12 ring-2 ring-purple-400/50">
-            <AvatarImage src={user.profile?.avatar} />
-            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-              {user.profile?.name?.[0] || user.username[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h3 className="font-bold text-white">{user.profile?.name || user.username}</h3>
-            <p className="text-purple-300 text-sm">@{user.username}</p>
-            {user.profile?.bio && (
-              <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.profile.bio}</p>
-            )}
-            {showStats && user._count && (
-              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
-                <span>👥 {user._count.followers} followers</span>
-                <span>📝 {user._count.posts} posts</span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <Button 
-          onClick={() => onFollow(user.id)}
-          size="sm"
-          className={user.isFollowing ? 
-            "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white" :
-            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+  const handlePrivacyToggle = async () => {
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPrivate: !isPrivate })
+      })
+      if (res.ok) {
+        setIsPrivate(!isPrivate)
+      }
+    } catch (error) {
+      console.error('Privacy update failed:', error)
+    }
+  }
+
+  const canEditPost = (createdAt: Date) => {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000)
+    return new Date(createdAt) > twoMinutesAgo
+  }
+
+  const handleEditPost = async (postId: string) => {
+    if (!editContent.trim()) return
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent })
+      })
+      if (res.ok) {
+        const updatedPost = await res.json()
+        setPosts(posts.map(p => p.id === postId ? updatedPost : p))
+        setEditingPost(null)
+        setEditContent('')
+      } else {
+        const data = await res.json()
+        alert(data.message || 'Failed to edit post')
+      }
+    } catch (error) {
+      console.error('Failed to edit post:', error)
+      alert('Failed to edit post')
+    }
+  }
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return
+    try {
+      const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPosts(posts.filter(p => p.id !== postId))
+      } else {
+        alert('Failed to delete post')
+      }
+    } catch (error) {
+      console.error('Failed to delete post:', error)
+      alert('Failed to delete post')
+    }
+  }
+
+  const handleOpenChat = (conversation: any) => {
+    setSelectedChat(conversation)
+    // Load dummy messages
+    const dummyMessages = [
+      { id: '1', senderId: conversation.user.id, content: 'Hey! How are you?', createdAt: new Date(Date.now() - 60000), read: true },
+      { id: '2', senderId: user.id, content: 'I\'m good! Working on a new project', createdAt: new Date(Date.now() - 50000), read: true },
+      { id: '3', senderId: conversation.user.id, content: conversation.lastMessage.content, createdAt: conversation.lastMessage.createdAt, read: conversation.lastMessage.read }
+    ]
+    setChatMessages(dummyMessages)
+  }
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() && !selectedMedia) return
+    
+    let mediaUrl = null
+    let mediaType = null
+    
+    if (selectedMedia) {
+      const formData = new FormData()
+      formData.append('avatar', selectedMedia)
+      const uploadRes = await fetch('/api/upload/avatar', {
+        method: 'POST',
+        body: formData
+      })
+      if (uploadRes.ok) {
+        const data = await uploadRes.json()
+        mediaUrl = data.avatarUrl
+        mediaType = selectedMedia.type.startsWith('video') ? 'video' : 'image'
+      }
+    }
+    
+    const message = {
+      id: Date.now().toString(),
+      senderId: user.id,
+      content: newMessage,
+      type: mediaUrl ? mediaType : 'text',
+      mediaUrl,
+      replyTo: replyTo,
+      reactions: [],
+      createdAt: new Date(),
+      read: false
+    }
+    setChatMessages([...chatMessages, message])
+    setNewMessage('')
+    setReplyTo(null)
+    setSelectedMedia(null)
+    setMediaPreview(null)
+  }
+
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSelectedMedia(file)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setMediaPreview(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleAddReaction = (messageId: string, emoji: string) => {
+    setChatMessages(chatMessages.map(msg => {
+      if (msg.id === messageId) {
+        const reactions = msg.reactions || []
+        const existingReaction = reactions.find((r: any) => r.emoji === emoji)
+        if (existingReaction) {
+          return {
+            ...msg,
+            reactions: reactions.map((r: any) => 
+              r.emoji === emoji ? { ...r, count: r.count + 1 } : r
+            )
           }
-        >
-          {user.isFollowing ? 'Following' : 'Follow'}
-        </Button>
-      </div>
-    </div>
-  )
+        }
+        return {
+          ...msg,
+          reactions: [...reactions, { emoji, count: 1 }]
+        }
+      }
+      return msg
+    }))
+    setShowReactions(null)
+  }
+
+  const handleStartRecording = () => {
+    setIsRecording(true)
+    setRecordingTime(0)
+    const interval = setInterval(() => {
+      setRecordingTime(prev => prev + 1)
+    }, 1000)
+    // Store interval ID for cleanup
+    ;(window as any).recordingInterval = interval
+  }
+
+  const handleStopRecording = () => {
+    setIsRecording(false)
+    clearInterval((window as any).recordingInterval)
+    const message = {
+      id: Date.now().toString(),
+      senderId: user.id,
+      content: `Voice message (${recordingTime}s)`,
+      type: 'voice',
+      duration: recordingTime,
+      createdAt: new Date(),
+      read: false
+    }
+    setChatMessages([...chatMessages, message])
+    setRecordingTime(0)
+  }
+
+  const handleStartCall = (type: 'voice' | 'video') => {
+    setCallType(type)
+    setShowCallModal(true)
+  }
+
+  const handleEndCall = () => {
+    setShowCallModal(false)
+    setCallType(null)
+  }
+
+  const handleShowComments = async (postId: string) => {
+    setShowComments(postId)
+    if (!postComments[postId]) {
+      try {
+        const res = await fetch(`/api/posts/${postId}/comments`)
+        if (res.ok) {
+          const comments = await res.json()
+          setPostComments(prev => ({ ...prev, [postId]: comments }))
+        }
+      } catch (error) {
+        console.error('Failed to load comments:', error)
+      }
+    }
+  }
+
+  const handlePostComment = async (postId: string) => {
+    if (!commentText.trim() || commentLoading) return
+    setCommentLoading(true)
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: commentText })
+      })
+      if (res.ok) {
+        const newComment = await res.json()
+        setPostComments(prev => ({
+          ...prev,
+          [postId]: [newComment, ...(prev[postId] || [])]
+        }))
+        setPosts(posts.map(p => 
+          p.id === postId ? { 
+            ...p, 
+            _count: { ...p._count, comments: p._count.comments + 1 },
+            comments: [newComment, ...(p.comments || [])].slice(0, 2)
+          } : p
+        ))
+        setCommentText('')
+      }
+    } catch (error) {
+      console.error('Failed to post comment:', error)
+    } finally {
+      setCommentLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-sm backdrop-blur-sm bg-opacity-95">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">📚</span>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               EduNet
             </h1>
           </Link>
+          
           <div className="flex items-center space-x-2">
             <Link href="/feed">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Home className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="hover:bg-purple-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl">
+                <Home className="h-6 w-6" />
               </Button>
             </Link>
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowSearchModal(true)
-              }}
-              className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
+              onClick={() => setShowSearchModal(true)}
+              className="hover:bg-purple-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-6 w-6" />
             </Button>
             <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowUploadModal(true)
-              }}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
+              onClick={() => setShowCreateModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5 mr-2" />
+              Create
             </Button>
             <Link href="/notifications">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl relative"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setUnreadNotifications(0)
-                }}
-              >
-                <Bell className="h-5 w-5" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </span>
-                )}
+              <Button variant="ghost" size="icon" className="hover:bg-purple-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl">
+                <Bell className="h-6 w-6" />
               </Button>
             </Link>
             <Link href="/coding-profile">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
-                onClick={(e) => {
-                  e.stopPropagation()
-                }}
-              >
-                <Code className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="hover:bg-purple-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl">
+                <Code className="h-6 w-6" />
               </Button>
             </Link>
             <Link href="/profile">
-              <div className="relative cursor-pointer group">
-                <Avatar className="h-9 w-9 ring-2 ring-blue-500 hover:ring-purple-500 transition-all">
-                  <AvatarImage src={user.profile?.avatar} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
-                    {user.profile?.name?.[0] || user.username[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute top-12 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 min-w-[200px] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50">
-                  <div className="text-center">
-                    <p className="text-gray-900 dark:text-white font-bold mb-2">{user.profile?.name || user.username}</p>
-                    <div className="flex justify-around text-sm">
-                      <div>
-                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.posts}</p>
-                        <p className="text-gray-500 dark:text-gray-400">Posts</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.followers}</p>
-                        <p className="text-gray-500 dark:text-gray-400">Followers</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-900 dark:text-white font-bold">{profileStats.following}</p>
-                        <p className="text-gray-500 dark:text-gray-400">Following</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Avatar className="h-10 w-10 ring-2 ring-purple-500 hover:ring-indigo-500 transition-all cursor-pointer">
+                <AvatarImage src={user.profile?.avatar} />
+                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-lg">
+                  {user.profile?.name?.[0] || user.username[0]}
+                </AvatarFallback>
+              </Avatar>
             </Link>
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowHamburgerMenu(!showHamburgerMenu)
-              }} 
-              className="hover:bg-blue-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl"
+              onClick={() => setShowSettings(true)}
+              className="hover:bg-purple-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto py-6 px-4">
-        {/* Stories Section */}
-        <div className="mb-8">
-          <div className="flex space-x-4 overflow-x-auto pb-4">
-            {/* Your Story */}
-            <div className="flex-shrink-0 text-center">
-              {storyGroups.find(g => g.user.id === user.id) ? (
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto flex gap-6 py-8 px-4">
+        {/* Messages Sidebar */}
+        <div className="w-80 flex-shrink-0">
+          <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg transition-colors duration-300">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                <MessageCircle className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                Messages
+              </h2>
+            </div>
+            <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+              {dummyConversations.map((conv) => (
                 <button
-                  onClick={() => openStoryViewer(storyGroups.findIndex(g => g.user.id === user.id))}
-                  className="relative w-16 h-16 rounded-full p-0.5 cursor-pointer hover:scale-110 transition-transform bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500"
+                  key={conv.id}
+                  onClick={() => handleOpenChat(conv)}
+                  className="w-full p-3 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all border-b border-gray-100 dark:border-gray-700 last:border-0"
                 >
-                  <Avatar className="w-full h-full border-2 border-black">
-                    <AvatarImage src={user.profile?.avatar} />
-                    <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                      {user.profile?.name?.[0] || user.username[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-black flex items-center justify-center">
-                    <Plus className="h-3 w-3 text-white" />
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 ring-2 ring-purple-500">
+                      <AvatarImage src={conv.user.profile?.avatar} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-sm">
+                        {conv.user.profile?.name?.[0] || conv.user.username[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conv.online && (
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                    )}
+                    {conv.unreadCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        {conv.unreadCount}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                      {conv.user.profile?.name || conv.user.username}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {conv.lastMessage.content}
+                    </p>
+                  </div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    {formatTimeAgo(conv.lastMessage.createdAt)}
                   </div>
                 </button>
-              ) : (
-                <button
-                  onClick={() => setShowCreateStory(true)}
-                  className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center mb-2 cursor-pointer hover:scale-110 transition-transform"
-                >
-                  <Plus className="h-8 w-8 text-white" />
-                </button>
-              )}
-              <p className="text-xs text-white/80 mt-1">Your Story</p>
+              ))}
             </div>
-            
-            {/* Friends Stories */}
-            {storyGroups.filter(g => g.user.id !== user.id).map((group, index) => (
-              <div key={group.user.id} className="flex-shrink-0 text-center">
-                <button
-                  onClick={() => openStoryViewer(storyGroups.findIndex(g => g.user.id === group.user.id))}
-                  className={`w-16 h-16 rounded-full p-0.5 cursor-pointer hover:scale-110 transition-transform ${
-                    group.hasUnviewed 
-                      ? 'bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500' 
-                      : 'bg-gray-600'
-                  }`}
-                >
-                  <Avatar className="w-full h-full border-2 border-black">
-                    <AvatarImage src={group.user.profile?.avatar} />
-                    <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                      {group.user.profile?.name?.[0] || group.user.username[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-                <p className="text-xs text-white/80 mt-1 truncate w-16">{group.user.profile?.name || group.user.username}</p>
-              </div>
-            ))}
           </div>
         </div>
 
+        {/* Posts Feed */}
+        <div className="flex-1 max-w-2xl">
         {/* Posts Feed */}
         <div className="space-y-6">
           {posts.map((post) => (
             <div key={post.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300">
               {/* Post Header */}
               <div className="flex items-center justify-between p-4">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-11 w-11 ring-2 ring-blue-500">
+                <Link href={`/profile/${post.user.username}`} className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
+                  <Avatar className="h-11 w-11 ring-2 ring-purple-500">
                     <AvatarImage src={post.user.profile?.avatar} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold">
                       {post.user.profile?.name?.[0] || post.user.username[0]}
                     </AvatarFallback>
                   </Avatar>
@@ -886,34 +607,41 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                     <p className="font-bold text-gray-900 dark:text-white">{post.user.profile?.name || post.user.username}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">@{post.user.username} • {formatTimeAgo(new Date(post.createdAt))}</p>
                   </div>
-                </div>
+                </Link>
                 {post.user.id === user.id && (
                   <div className="relative">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setShowPostMenu(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
-                      className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowPostMenu(showPostMenu === post.id ? null : post.id)}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
                     >
-                      <MoreHorizontal className="h-5 w-5" />
+                      <MoreVertical className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                     </Button>
-                    {showPostMenu[post.id] && (
-                      <div className="absolute top-10 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl p-2 z-10 min-w-[160px] shadow-2xl">
+                    {showPostMenu === post.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-200 dark:border-gray-600 py-2 z-10">
                         {canEditPost(post.createdAt) && (
                           <button
-                            onClick={() => handleEditPost(post)}
-                            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-blue-50 rounded-xl transition-colors"
+                            onClick={() => {
+                              setEditingPost(post.id)
+                              setEditContent(post.content || '')
+                              setShowPostMenu(null)
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center space-x-2 text-gray-700 dark:text-gray-200"
                           >
-                            <Edit3 className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm font-medium">Edit Post</span>
+                            <Edit className="h-4 w-4" />
+                            <span>Edit</span>
                           </button>
                         )}
                         <button
-                          onClick={() => handleDeletePost(post.id)}
-                          className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-red-50 rounded-xl transition-colors"
+                          onClick={() => {
+                            handleDeletePost(post.id)
+                            setShowPostMenu(null)
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center space-x-2 text-red-600 dark:text-red-400"
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                          <span className="text-sm font-medium">Delete Post</span>
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
                         </button>
                       </div>
                     )}
@@ -922,71 +650,65 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
               </div>
 
               {/* Post Content */}
-              <div className="px-4 pb-3">
-                {editingPost === post.id ? (
-                  <div className="mb-4">
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      rows={3}
-                    />
-                    <div className="flex space-x-2 mt-3">
-                      <Button 
-                        onClick={() => saveEditPost(post.id)}
-                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-4 py-2 rounded-xl"
-                      >
-                        Save
-                      </Button>
-                      <Button 
-                        onClick={() => setEditingPost(null)}
-                        variant="outline"
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700/50 px-4 py-2 rounded-xl"
-                      >
-                        Cancel
-                      </Button>
+              {post.content && (
+                <div className="px-4 pb-3">
+                  {editingPost === post.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
+                        rows={3}
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleEditPost(post.id)}
+                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingPost(null)
+                            setEditContent('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  post.content && (
-                    <p className="text-gray-900 dark:text-white mb-3 leading-relaxed">{post.content}</p>
-                  )
-                )}
-                
-                {post.tags && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {post.tags.split(',').map((tag: string) => (
-                      <span key={tag.trim()} className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer">
-                        #{tag.trim()}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <p className="text-gray-900 dark:text-white leading-relaxed">{post.content}</p>
+                  )}
+                </div>
+              )}
 
               {/* Media */}
               {post.media && post.media.length > 0 && (
-                <div className="mx-6 mb-6">
-                  <div className={`grid gap-2 rounded-2xl overflow-hidden ${
+                <div className="px-4 pb-4">
+                  <div className={`grid gap-2 rounded-xl overflow-hidden ${
                     post.media.length === 1 ? 'grid-cols-1' :
                     post.media.length === 2 ? 'grid-cols-2' :
                     post.media.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
                   }`}>
                     {post.media.map((media: any, index: number) => (
-                      <div key={media.id} className={`relative ${
+                      <div key={media.id || index} className={`relative ${
                         post.media.length === 3 && index === 0 ? 'row-span-2' : ''
                       }`}>
                         {media.type === 'video' ? (
                           <video 
                             src={media.url} 
                             controls 
-                            className="w-full h-full object-cover rounded-xl border border-purple-400/20"
+                            className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <img 
                             src={media.url} 
                             alt={`Media ${index + 1}`}
-                            className="w-full h-full object-cover rounded-xl border border-purple-400/20 hover:scale-105 transition-transform cursor-pointer"
+                            className="w-full h-full object-cover rounded-lg hover:opacity-95 transition-opacity cursor-pointer"
                           />
                         )}
                       </div>
@@ -995,64 +717,70 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                 </div>
               )}
 
-              {/* Poll */}
-              {post.pollQuestion && (
-                <div className="mx-6 mb-6">
-                  <div className="bg-black/40 rounded-2xl border border-cyan-400/30 p-4">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <BarChart3 className="h-5 w-5 text-cyan-400" />
-                      <span className="text-white font-semibold">{post.pollQuestion}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {JSON.parse(post.pollOptions || '[]').map((option: string, index: number) => (
-                        <button
-                          key={index}
-                          className="w-full text-left bg-black/30 hover:bg-purple-500/20 border border-gray-600 hover:border-purple-400 rounded-xl px-4 py-3 text-white transition-all"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{option}</span>
-                            <span className="text-sm text-gray-400">{Math.floor(Math.random() * 30 + 10)}%</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-3 text-xs text-gray-400 flex items-center justify-between">
-                      <span>🗳️ {Math.floor(Math.random() * 500 + 100)} votes</span>
-                      <span>⏰ {post.pollDuration}h left</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Code Block */}
               {post.code && (
-                <div className="mx-6 mb-6">
-                  <div className="bg-black/40 rounded-2xl border border-cyan-400/30 overflow-hidden">
-                    <div className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 px-4 py-2 border-b border-cyan-400/30">
-                      <div className="flex items-center space-x-2">
-                        <div className="flex space-x-1">
-                          <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                        </div>
-                        <span className="text-cyan-300 text-sm font-mono">{post.language || 'javascript'}</span>
-                        <span className="text-purple-300 text-xs">🔥 Hot Code</span>
-                      </div>
+                <div className="mx-4 mb-4">
+                  <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                    <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
+                      <span className="text-gray-300 text-sm font-mono">{post.language || 'javascript'}</span>
                     </div>
                     <CodeViewer code={post.code} language={post.language || 'javascript'} />
                   </div>
                 </div>
               )}
 
+              {/* Recent Comments Preview */}
+              {post.comments && post.comments.length > 0 && (
+                <div className="px-4 pb-3 space-y-3">
+                  {post.comments.slice(0, 2).map((comment: any) => (
+                    <div key={comment.id} className="flex space-x-2">
+                      <Link 
+                        href={`/profile/${comment.user.username}`}
+                        className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                      >
+                        <Avatar className="h-7 w-7 ring-1 ring-gray-300 dark:ring-gray-600 cursor-pointer">
+                          <AvatarImage src={comment.user.profile?.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-xs">
+                            {comment.user.profile?.name?.[0] || comment.user.username[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2">
+                        <p className="text-sm">
+                          <Link 
+                            href={`/profile/${comment.user.username}`}
+                            className="font-semibold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 mr-2 transition-colors"
+                          >
+                            {comment.user.profile?.name || comment.user.username}
+                          </Link>
+                          <span className="text-gray-700 dark:text-gray-300">{comment.content}</span>
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {formatTimeAgo(new Date(comment.createdAt))}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {post.comments.length > 2 && (
+                    <button
+                      onClick={() => handleShowComments(post.id)}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors"
+                    >
+                      View all {post.comments.length} comments
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Post Actions */}
-              <div className="border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center space-x-8">
+              <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center space-x-6">
+                {(!post.user.profile?.isPrivate || post.user.id === user.id) ? (
+                  <>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleLike(post.id)}
-                      className={`hover:bg-red-50 dark:hover:bg-red-900/20 transition-all ${post.likes.some((like: any) => like.userId === user.id) ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}
+                      className={`transition-all ${post.likes.some((like: any) => like.userId === user.id) ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}
                     >
                       <Heart className={`h-5 w-5 mr-2 ${post.likes.some((like: any) => like.userId === user.id) ? 'fill-current' : ''}`} />
                       <span className="font-semibold">{post._count.likes}</span>
@@ -1060,837 +788,927 @@ export default function FeedClient({ user, initialPosts }: FeedClientProps) {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => toggleComments(post.id)}
-                      className="text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+                      onClick={() => handleShowComments(post.id)}
+                      className="text-gray-600 dark:text-gray-400 transition-all"
                     >
                       <MessageCircle className="h-5 w-5 mr-2" />
                       <span className="font-semibold">{post._count.comments}</span>
                     </Button>
-                    <div className="relative">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowShareMenu(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
-                        className="text-gray-600 dark:text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-all"
-                      >
-                        <Share className="h-5 w-5 mr-2" />
-                        <span className="font-semibold">Share</span>
-                      </Button>
-                      {showShareMenu[post.id] && (
-                        <div className="absolute bottom-12 left-0 bg-white/95 backdrop-blur-2xl border border-gray-200/50 rounded-3xl p-4 z-10 min-w-[280px] shadow-2xl shadow-black/20">
-                          {/* Header */}
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-gray-800 font-semibold text-lg">Share Post</h3>
-                            <button
-                              onClick={() => setShowShareMenu(prev => ({ ...prev, [post.id]: false }))}
-                              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                            >
-                              <X className="h-4 w-4 text-gray-500" />
-                            </button>
-                          </div>
-                          
-                          {/* Quick Actions */}
-                          <div className="grid grid-cols-3 gap-3 mb-4">
-                            <button
-                              onClick={() => handleShare(post.id, 'message')}
-                              className="flex flex-col items-center space-y-2 p-4 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-2xl transition-all duration-300 transform hover:scale-105"
-                            >
-                              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                <MessageSquare className="h-6 w-6 text-white" />
-                              </div>
-                              <span className="text-xs font-medium text-gray-700">Message</span>
-                            </button>
-                            
-                            <button
-                              onClick={() => handleShare(post.id, 'story')}
-                              className="flex flex-col items-center space-y-2 p-4 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-2xl transition-all duration-300 transform hover:scale-105"
-                            >
-                              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                                <Plus className="h-6 w-6 text-white" />
-                              </div>
-                              <span className="text-xs font-medium text-gray-700">Story</span>
-                            </button>
-                            
-                            <button
-                              onClick={() => handleShare(post.id, 'copy')}
-                              className="flex flex-col items-center space-y-2 p-4 bg-gradient-to-br from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 rounded-2xl transition-all duration-300 transform hover:scale-105"
-                            >
-                              <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
-                                <Copy className="h-6 w-6 text-white" />
-                              </div>
-                              <span className="text-xs font-medium text-gray-700">Copy</span>
-                            </button>
-                          </div>
-                          
-                          {/* Social Platforms */}
-                          <div className="border-t border-gray-200 pt-4">
-                            <p className="text-sm font-medium text-gray-600 mb-3">Share to social media</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => handleShare(post.id, 'whatsapp')}
-                                className="flex items-center space-x-3 p-3 bg-green-50 hover:bg-green-100 rounded-xl transition-all duration-200 group"
-                              >
-                                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <MessageCircle className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">WhatsApp</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => handleShare(post.id, 'facebook')}
-                                className="flex items-center space-x-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-200 group"
-                              >
-                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <ExternalLink className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">Facebook</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => handleShare(post.id, 'twitter')}
-                                className="flex items-center space-x-3 p-3 bg-sky-50 hover:bg-sky-100 rounded-xl transition-all duration-200 group"
-                              >
-                                <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <Link2 className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">Twitter</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => handleShare(post.id, 'telegram')}
-                                className="flex items-center space-x-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-200 group"
-                              >
-                                <div className="w-8 h-8 bg-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <Send className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">Telegram</span>
-                              </button>
-                            </div>
-                            
-                            <button
-                              onClick={() => handleShare(post.id, 'email')}
-                              className="w-full flex items-center justify-center space-x-3 p-3 mt-2 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 group"
-                            >
-                              <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <Hash className="h-4 w-4 text-white" />
-                              </div>
-                              <span className="text-sm font-medium text-gray-700">Send via Email</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400 transition-all">
+                      <Share className="h-5 w-5 mr-2" />
+                      Share
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex items-center space-x-2 text-gray-500">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-sm">Private Account</span>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleSavePost(post.id)}
-                      className="flex items-center space-x-1 hover:scale-110 transition-transform"
-                    >
-                      <Star className="h-5 w-5 text-gray-400 hover:text-yellow-400" />
-                      <span className="text-xs text-gray-400">0</span>
-                    </button>
-                    <span className="text-xs text-purple-300">🔥 {post._count.likes * 3 + 15}K views</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Comments Section */}
-              {showComments[post.id] && (
-                <div className="border-t border-white/10 bg-black/10">
-                  {/* Add Comment */}
-                  <div className="p-4 border-b border-white/10">
-                    <div className="flex space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.profile?.avatar} />
-                        <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                          {user.profile?.name?.[0] || user.username[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 flex space-x-2">
-                        <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          value={commentText[post.id] || ''}
-                          onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleComment(post.id)
-                            }
-                          }}
-                          className="flex-1 bg-black/30 border border-gray-600 rounded-full px-4 py-2 text-white placeholder:text-gray-400 focus:border-purple-400 text-sm"
-                        />
-                        <Button 
-                          onClick={() => handleComment(post.id)}
-                          disabled={!commentText[post.id]?.trim()}
-                          size="sm"
-                          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white rounded-full px-4 disabled:opacity-50"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Comments List */}
-                  <div className="max-h-60 overflow-y-auto">
-                    {post.comments.map((comment: any) => (
-                      <div key={comment.id} className="p-4 hover:bg-black/10 transition-colors">
-                        <div className="flex space-x-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={comment.user.profile?.avatar} />
-                            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                              {comment.user.profile?.name?.[0] || comment.user.username[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-semibold text-white text-sm">
-                                {comment.user.profile?.name || comment.user.username}
-                              </span>
-                              <span className="text-gray-400 text-xs">
-                                {new Date(comment.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <p className="text-gray-200 text-sm mt-1">{comment.content}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}              </div>
             </div>
           ))}
         </div>
+        </div>
       </div>
 
-      {/* Upload Modal */}
-      {showUploadModal && (
+      {/* Create Post Modal - Modern UI */}
+      {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 rounded-3xl border border-purple-400/30 w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl shadow-purple-500/25">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-purple-400/20">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col transition-colors duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">✨</span>
-                </div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                  Create Epic Post
-                </h2>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setShowUploadModal(false)}
-                className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-12 w-12 ring-2 ring-purple-400">
+                <Avatar className="h-10 w-10 ring-2 ring-purple-500">
                   <AvatarImage src={user.profile?.avatar} />
-                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold">
                     {user.profile?.name?.[0] || user.username[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-bold text-white">{user.profile?.name || user.username}</p>
-                  <p className="text-sm text-purple-300">@{user.username}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{user.profile?.name || user.username}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</p>
                 </div>
               </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setPostContent('')
+                  setCodeContent('')
+                  setSelectedFiles([])
+                  setMediaPreviews([])
+                  setActiveTab('text')
+                }}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+              >
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </Button>
+            </div>
 
-              {/* Content Input */}
-              <div className="space-y-4">
-                <div 
-                  className={`relative ${
-                    isDragging ? 'ring-2 ring-purple-400 ring-opacity-50' : ''
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setActiveTab('text')}
+                className={`flex-1 py-3 px-4 font-medium transition-all ${
+                  activeTab === 'text'
+                    ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4 inline mr-2" />
+                Text Post
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`flex-1 py-3 px-4 font-medium transition-all ${
+                  activeTab === 'code'
+                    ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <Code className="h-4 w-4 inline mr-2" />
+                Code Snippet
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {activeTab === 'text' ? (
+                <>
                   <textarea
-                    placeholder="What's on your mind? Share your coding journey! 🚀"
+                    placeholder="What's on your mind? Share your thoughts, ideas, or questions..."
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
-                    maxLength={500}
-                    className="w-full h-32 bg-black/30 border border-purple-400/30 rounded-2xl p-4 text-white placeholder:text-gray-400 resize-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                    className="w-full h-40 p-4 border-0 resize-none focus:outline-none text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-lg transition-colors duration-300"
+                    autoFocus
                   />
-                  {isDragging && (
-                    <div className="absolute inset-0 bg-purple-500/20 border-2 border-dashed border-purple-400 rounded-2xl flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <Upload className="h-8 w-8 mx-auto mb-2" />
-                        <p className="font-semibold">Drop your media here!</p>
-                      </div>
+                  
+                  {/* Media Previews */}
+                  {mediaPreviews.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      {mediaPreviews.map((preview, index) => (
+                        <div key={index} className="relative group rounded-xl overflow-hidden">
+                          <img 
+                            src={preview} 
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-48 object-cover"
+                          />
+                          <button
+                            onClick={() => removeMedia(index)}
+                            className="absolute top-2 right-2 bg-black/70 hover:bg-black text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
-                  <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                    <div className="relative">
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Language</label>
+                    <select
+                      value={codeLanguage}
+                      onChange={(e) => setCodeLanguage(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
+                    >
+                      <option value="javascript">JavaScript</option>
+                      <option value="python">Python</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                      <option value="typescript">TypeScript</option>
+                      <option value="html">HTML</option>
+                      <option value="css">CSS</option>
+                      <option value="sql">SQL</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (optional)</label>
+                    <textarea
+                      placeholder="Explain your code..."
+                      value={postContent}
+                      onChange={(e) => setPostContent(e.target.value)}
+                      className="w-full h-20 p-3 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-colors duration-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code</label>
+                    <textarea
+                      placeholder="Paste your code here..."
+                      value={codeContent}
+                      onChange={(e) => setCodeContent(e.target.value)}
+                      className="w-full h-64 p-4 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 font-mono text-sm transition-colors duration-300"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  {activeTab === 'text' && (
+                    <>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          disabled={mediaPreviews.length >= 4}
+                        />
+                        <Button 
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={mediaPreviews.length >= 4}
+                          className="pointer-events-none hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                        >
+                          <ImageIcon className="h-5 w-5" />
+                        </Button>
+                      </label>
                       <Button 
                         variant="ghost" 
-                        size="icon" 
+                        size="sm"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="h-8 w-8 text-gray-400 hover:text-purple-400"
+                        className="hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 relative"
                       >
-                        <Smile className="h-4 w-4" />
+                        <Smile className="h-5 w-5" />
                       </Button>
                       {showEmojiPicker && (
-                        <div className="absolute bottom-10 right-0 bg-black/90 backdrop-blur-xl border border-purple-400/30 rounded-2xl p-3 grid grid-cols-5 gap-2 z-10">
-                          {emojis.map((emoji, index) => (
+                        <div className="absolute bottom-16 left-4 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-200 dark:border-gray-600 p-3 grid grid-cols-6 gap-2 z-10">
+                          {emojis.map((emoji, i) => (
                             <button
-                              key={index}
-                              onClick={() => insertEmoji(emoji)}
-                              className="text-xl hover:bg-purple-500/20 rounded-lg p-1 transition-colors"
+                              key={i}
+                              onClick={() => {
+                                setPostContent(postContent + emoji)
+                                setShowEmojiPicker(false)
+                              }}
+                              className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors"
                             >
                               {emoji}
                             </button>
                           ))}
                         </div>
                       )}
-                    </div>
-                    <span className={`text-xs ${
-                      postContent.length > 450 ? 'text-red-400' : 
-                      postContent.length > 400 ? 'text-yellow-400' : 'text-gray-500'
-                    }`}>
-                      {postContent.length}/500
-                    </span>
-                  </div>
+                    </>
+                  )}
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                    {activeTab === 'text' ? `${postContent.length}/500` : `${codeContent.length} chars`}
+                  </span>
                 </div>
-
-                {/* Code Section */}
-                <div className="bg-black/40 rounded-2xl border border-cyan-400/30 overflow-hidden">
-                  <div className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 px-4 py-3 border-b border-cyan-400/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Code className="h-5 w-5 text-cyan-400" />
-                        <span className="text-white font-semibold">Code Snippet</span>
-                      </div>
-                      <select
-                        value={postLanguage}
-                        onChange={(e) => setPostLanguage(e.target.value)}
-                        className="bg-black/50 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:border-cyan-400"
-                      >
-                        <option value="javascript">JavaScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
-                        <option value="css">CSS</option>
-                        <option value="html">HTML</option>
-                      </select>
-                    </div>
-                  </div>
-                  <textarea
-                    placeholder="// Share your amazing code here! \nconsole.log('Hello, EduNet! 🔥');"
-                    value={postCode}
-                    onChange={(e) => setPostCode(e.target.value)}
-                    className="w-full h-40 bg-transparent border-0 p-4 text-green-400 font-mono text-sm placeholder:text-gray-500 resize-none focus:outline-none"
-                  />
-                </div>
-
-                {/* Media Upload Section */}
-                {mediaPreviews.length > 0 && (
-                  <div className="bg-black/30 rounded-2xl border border-purple-400/30 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-white font-semibold flex items-center">
-                        <Image className="h-5 w-5 mr-2 text-purple-400" />
-                        Media ({mediaPreviews.length}/4)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {mediaPreviews.map((preview, index) => (
-                        <div key={index} className="relative group">
-                          <img 
-                            src={preview} 
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-xl border border-purple-400/20"
-                          />
-                          <button
-                            onClick={() => removeMedia(index)}
-                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Poll Creator */}
-                {showPollCreator && (
-                  <div className="bg-black/40 rounded-2xl border border-cyan-400/30 p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <BarChart3 className="h-5 w-5 text-cyan-400" />
-                        <span className="text-white font-semibold">Create Poll</span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setShowPollCreator(false)}
-                        className="h-8 w-8 text-gray-400 hover:text-white"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    <input
-                      type="text"
-                      placeholder="Ask a question..."
-                      value={pollQuestion}
-                      onChange={(e) => setPollQuestion(e.target.value)}
-                      className="w-full bg-black/30 border border-cyan-400/30 rounded-xl px-4 py-3 text-white placeholder:text-gray-400 focus:border-cyan-400"
-                    />
-                    
-                    <div className="space-y-2">
-                      {pollOptions.map((option, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            placeholder={`Option ${index + 1}`}
-                            value={option}
-                            onChange={(e) => updatePollOption(index, e.target.value)}
-                            className="flex-1 bg-black/30 border border-gray-600 rounded-xl px-4 py-2 text-white placeholder:text-gray-400 focus:border-cyan-400"
-                          />
-                          {pollOptions.length > 2 && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removePollOption(index)}
-                              className="h-8 w-8 text-red-400 hover:text-red-300"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <Button 
-                        variant="ghost" 
-                        onClick={addPollOption}
-                        disabled={pollOptions.length >= 4}
-                        className="text-cyan-400 hover:text-cyan-300 text-sm"
-                      >
-                        + Add Option
-                      </Button>
-                      <select
-                        value={pollDuration}
-                        onChange={(e) => setPollDuration(e.target.value)}
-                        className="bg-black/50 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm"
-                      >
-                        <option value="1">1 hour</option>
-                        <option value="6">6 hours</option>
-                        <option value="24">1 day</option>
-                        <option value="168">1 week</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tags Input */}
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-pink-400" />
-                  <input
-                    type="text"
-                    placeholder="Add tags (javascript, react, coding, etc.)"
-                    value={postTags}
-                    onChange={(e) => setPostTags(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        const tag = e.currentTarget.value.trim()
-                        if (tag && !postTags.includes(tag)) {
-                          setPostTags(prev => prev ? `${prev}, ${tag}` : tag)
-                          e.currentTarget.value = ''
-                        }
-                      }
-                    }}
-                    className="w-full bg-black/30 border border-pink-400/30 rounded-2xl pl-12 pr-4 py-3 text-white placeholder:text-gray-400 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-4 border-t border-purple-400/20">
-                <div className="flex items-center space-x-3">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*"
-                      onChange={handleMediaSelect}
-                      className="hidden"
-                      disabled={mediaPreviews.length >= 4}
-                    />
-                    <div 
-                      className={`text-gray-400 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-colors flex items-center ${
-                        mediaPreviews.length >= 4 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                    >
-                      <Image className="h-5 w-5 mr-2" />
-                      Media {mediaPreviews.length > 0 && `(${mediaPreviews.length}/4)`}
-                    </div>
-                  </label>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setShowPollCreator(!showPollCreator)}
-                    className={`text-gray-400 hover:text-white hover:bg-white/10 ${
-                      showPollCreator ? 'text-cyan-400 bg-cyan-500/10' : ''
-                    }`}
-                  >
-                    <BarChart3 className="h-5 w-5 mr-2" />
-                    Poll
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => {
-                      navigator.geolocation?.getCurrentPosition(
-                        (position) => {
-                          const location = `📍 ${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`
-                          setPostContent(prev => prev + ` ${location}`)
-                        },
-                        () => {
-                          setPostContent(prev => prev + ' 📍 Location shared')
-                        }
-                      )
-                    }}
-                    className="text-gray-400 hover:text-white hover:bg-white/10"
-                  >
-                    <MapPin className="h-5 w-5 mr-2" />
-                    Location
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    variant="ghost" 
-                    onClick={resetUploadModal}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleCreatePost}
-                    disabled={!postContent.trim() && !postCode.trim() && selectedMedia.length === 0 && (!showPollCreator || !pollQuestion.trim())}
-                    className="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 hover:from-pink-600 hover:via-purple-600 hover:to-cyan-600 text-white font-bold px-8 py-2 rounded-full shadow-lg shadow-purple-500/25 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {selectedMedia.length > 0 ? '📸 ' : showPollCreator ? '📊 ' : ''}Post It! 🚀
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Story Modal */}
-      {showCreateStory && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Create Story</h2>
-              <button onClick={() => setShowCreateStory(false)}>
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              <div className="flex space-x-2">
                 <button
-                  onClick={() => setStoryType('text')}
-                  className={`flex-1 p-3 rounded-xl flex items-center justify-center space-x-2 ${
-                    storyType === 'text' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100'
-                  }`}
+                  onClick={handleCreatePost}
+                  disabled={loading || (!postContent.trim() && selectedFiles.length === 0 && !codeContent.trim())}
+                  className="relative px-8 py-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white font-bold rounded-full shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none overflow-hidden group"
                 >
-                  <Type className="h-5 w-5" />
-                  <span>Text</span>
-                </button>
-                <label className={`flex-1 p-3 rounded-xl flex items-center justify-center space-x-2 cursor-pointer ${
-                  storyType === 'image' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100'
-                }`}>
-                  <Camera className="h-5 w-5" />
-                  <span>{uploadingStory ? 'Uploading...' : 'Photo'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleStoryMediaUpload}
-                    className="hidden"
-                    disabled={uploadingStory}
-                  />
-                </label>
-              </div>
-
-              {storyType === 'image' && storyMedia && (
-                <div className="relative">
-                  <img src={storyMedia} alt="Story" className="w-full h-48 object-cover rounded-xl" />
-                </div>
-              )}
-
-              <textarea
-                value={storyContent}
-                onChange={(e) => setStoryContent(e.target.value)}
-                placeholder={storyType === 'text' ? 'Share something...' : 'Add a caption...'}
-                className="w-full p-3 border rounded-xl resize-none h-24 focus:outline-none focus:border-purple-400"
-              />
-
-              <Button
-                onClick={handleCreateStory}
-                disabled={!storyContent.trim() && !storyMedia}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white"
-              >
-                Share Story
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Story Viewer */}
-      {showStoryViewer && storyGroups[currentUserIndex]?.stories[currentStoryIndex] && (
-        (() => {
-          const currentStory = storyGroups[currentUserIndex].stories[currentStoryIndex]
-          return (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-          <div className="relative w-full h-full max-w-md mx-auto">
-            {/* Progress bars */}
-            <div className="absolute top-4 left-4 right-4 flex space-x-1 z-10">
-              {storyGroups[currentUserIndex].stories.map((_, index) => (
-                <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full bg-white transition-all duration-300 ${
-                      index < currentStoryIndex ? 'w-full' : 
-                      index === currentStoryIndex ? 'w-full animate-pulse' : 'w-0'
-                    }`}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Header */}
-            <div className="absolute top-12 left-4 right-4 flex items-center justify-between z-10">
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-8 h-8 ring-2 ring-white/50">
-                  <AvatarImage src={storyGroups[currentUserIndex].user.profile?.avatar} />
-                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                    {storyGroups[currentUserIndex].user.profile?.name?.[0] || storyGroups[currentUserIndex].user.username[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-white font-medium text-sm">
-                    {storyGroups[currentUserIndex].user.profile?.name || storyGroups[currentUserIndex].user.username}
-                  </p>
-                  <p className="text-white/70 text-xs">
-                    {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {Math.max(0, 24 - Math.floor((Date.now() - new Date(currentStory.createdAt).getTime()) / (1000 * 60 * 60)))}h left
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {storyGroups[currentUserIndex].user.id === user.id && (
-                  <button 
-                    onClick={() => handleDeleteStory(currentStory.id)}
-                    className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-full transition-all"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                )}
-                <button onClick={() => setShowStoryViewer(false)} className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-full transition-all">
-                  <X className="h-6 w-6" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                  <div className="absolute inset-0 rounded-full bg-white/20 blur-xl group-hover:bg-white/30 transition-all duration-300"></div>
+                  {loading ? (
+                    <div className="flex items-center space-x-2 relative z-10">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="drop-shadow-lg">Posting...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 relative z-10">
+                      <span className="drop-shadow-lg">Post Now</span>
+                      <svg className="w-5 h-5 transform group-hover:translate-x-1 group-hover:scale-110 transition-all drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </div>
+                  )}
                 </button>
               </div>
             </div>
-
-            {/* Story Content */}
-            <div className="w-full h-full flex items-center justify-center">
-              {currentStory.mediaUrl ? (
-                <img 
-                  src={currentStory.mediaUrl} 
-                  alt="Story" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center p-8">
-                  <p className="text-white text-xl text-center font-medium">
-                    {currentStory.content}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Navigation */}
-            <button 
-              onClick={prevStory}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
-            >
-              <ChevronLeft className="h-8 w-8" />
-            </button>
-            <button 
-              onClick={nextStory}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
-            >
-              <ChevronRight className="h-8 w-8" />
-            </button>
-
-            {/* Views count & Reply */}
-            <div className="absolute bottom-4 left-4 right-4 z-10">
-              {storyGroups[currentUserIndex].user.id === user.id ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-white/90 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm font-medium">{currentStory._count.views} views</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Send message"
-                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2 text-white placeholder:text-white/60 focus:outline-none focus:border-white/50"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                        showNotification('Reply sent! 💬', 'success')
-                        e.currentTarget.value = ''
-                      }
-                    }}
-                  />
-                  <button className="text-white/80 hover:text-white p-2">
-                    <Heart className="h-6 w-6" />
-                  </button>
-                  <button className="text-white/80 hover:text-white p-2">
-                    <Send className="h-6 w-6" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Tap areas for navigation */}
-            <div className="absolute inset-0 flex">
-              <div className="w-1/2 h-full" onClick={prevStory} />
-              <div className="w-1/2 h-full" onClick={nextStory} />
-            </div>
           </div>
         </div>
-        )
-        })()
       )}
 
       {/* Search Modal */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-20">
-          <div className="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 rounded-3xl border border-purple-400/30 w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl">
-            {/* Search Header */}
-            <div className="flex items-center justify-between p-6 border-b border-purple-400/20">
-              <h2 className="text-xl font-bold text-white">Search Users</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl shadow-2xl max-h-[80vh] overflow-hidden transition-colors duration-300">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Search Users</h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setShowSearchModal(false)}
-                className="text-gray-400 hover:text-white"
+                className="hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-gray-700 dark:text-gray-300 rounded-xl transition-all"
               >
                 <X className="h-6 w-6" />
               </Button>
             </div>
-
-            {/* Search Input */}
-            <div className="p-6 border-b border-purple-400/20">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div className="p-6">
+              <div className="relative mb-6">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Search users by name, username, or skills..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    handleSearch(e.target.value)
-                  }}
-                  className="w-full bg-black/30 border border-purple-400/30 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  placeholder="Search by name or username..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-colors duration-300"
                 />
               </div>
-            </div>
-
-            {/* Search Results */}
-            <div className="max-h-96 overflow-y-auto p-6">
-              {searchLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
-                  <p className="text-gray-400 mt-2">Searching...</p>
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="space-y-4">
-                  {searchResults.map((targetUser) => (
-                    <UserCard key={targetUser.id} user={targetUser} onFollow={toggleFollow} />
-                  ))}
-                </div>
-              ) : searchTerm ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">No users found for "{searchTerm}"</p>
-                </div>
-              ) : (
-                <div>
-                  <h3 className="text-white font-semibold mb-4 flex items-center">
-                    <Users className="h-5 w-5 mr-2 text-purple-400" />
-                    Suggested for you
-                  </h3>
-                  <div className="space-y-4">
-                    {profileSuggestions.map((targetUser) => (
-                      <UserCard key={targetUser.id} user={targetUser} onFollow={toggleFollow} showStats />
-                    ))}
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {searchLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
                   </div>
-                  {profileSuggestions.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-400">No suggestions available</p>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((searchUser) => (
+                    <div key={searchUser.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                          {searchUser.profile?.name?.[0] || searchUser.username[0]}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white">{searchUser.profile?.name || searchUser.username}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">@{searchUser.username}</p>
+                          {searchUser.profile?.isPrivate && (
+                            <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <Lock className="h-3 w-3" />
+                              <span>Private</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {searchUser.id !== user.id && (
+                        <Button
+                          onClick={() => handleFollow(searchUser.id)}
+                          className={searchUser.isFollowing ? 
+                            "bg-gray-300 hover:bg-gray-400 text-gray-700" :
+                            "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                          }
+                        >
+                          {searchUser.isFollowing ? 'Following' : 'Follow'}
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  ))
+                ) : searchQuery ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No users found
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    Search for users by name or username
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Right Side Panel */}
-      {showHamburgerMenu && (
+      {/* Settings Sidebar */}
+      {showSettings && (
         <>
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-            onClick={() => setShowHamburgerMenu(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setShowSettings(false)}
           />
-          <div className="fixed top-0 right-0 h-full w-80 bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900 border-l border-white/20 z-50">
-            <div className="flex items-center justify-between p-6 border-b border-white/20">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">Menu</h2>
+          <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto transition-colors duration-300">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => setShowHamburgerMenu(false)}
-                className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
+                onClick={() => setShowSettings(false)}
+                className="hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-gray-700 dark:text-gray-300 rounded-xl transition-all"
               >
                 <X className="h-6 w-6" />
               </Button>
             </div>
-            <div className="flex-1 p-6">
-              <div className="text-center text-gray-400 mt-20">
-                <p>More features coming soon...</p>
+            <div className="p-6 space-y-6">
+              {/* Theme Settings */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Appearance</h3>
+                <div className="space-y-4">
+                  <div 
+                    onClick={toggleTheme}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {theme === 'dark' ? <Moon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> : <Sun className="h-5 w-5 text-amber-600" />}
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Switch to {theme === 'dark' ? 'light' : 'dark'} theme</p>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-6 rounded-full transition-all ${theme === 'dark' ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                      <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-all ${theme === 'dark' ? 'ml-6' : 'ml-0.5'}`}></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-6 border-t border-white/20">
-              <button
-                onClick={() => {
-                  setShowHamburgerMenu(false)
-                  handleLogout()
-                }}
-                className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-500/25"
+
+              {/* Privacy Settings */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Privacy</h3>
+                <div className="space-y-4">
+                  <div 
+                    onClick={handlePrivacyToggle}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {isPrivate ? <Lock className="h-5 w-5 text-purple-600 dark:text-purple-400" /> : <Globe className="h-5 w-5 text-green-600 dark:text-green-400" />}
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">{isPrivate ? 'Private Account' : 'Public Account'}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{isPrivate ? 'Only followers can interact' : 'Everyone can interact'}</p>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-6 rounded-full transition-all ${isPrivate ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                      <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-all ${isPrivate ? 'ml-6' : 'ml-0.5'}`}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Info */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Account</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <UserIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Username</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">@{user.username}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <UserIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{user.profile?.name || 'Not set'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logout */}
+              <Button 
+                onClick={handleLogout}
+                className="w-full bg-red-500 hover:bg-red-600 text-white"
               >
-                <LogOut className="h-5 w-5 text-white" />
-                <span className="font-bold text-white">Logout</span>
-              </button>
+                <LogOut className="h-5 w-5 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </>
+      )}
+
+      {/* Chat Popup Modal */}
+      {selectedChat && (
+        <div className="fixed bottom-0 right-8 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-50 transition-colors duration-300">
+          {/* Chat Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Avatar className="h-10 w-10 ring-2 ring-white">
+                  <AvatarImage src={selectedChat.user.profile?.avatar} />
+                  <AvatarFallback className="bg-white text-purple-600 font-bold text-sm">
+                    {selectedChat.user.profile?.name?.[0] || selectedChat.user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+                {selectedChat.online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">{selectedChat.user.profile?.name || selectedChat.user.username}</p>
+                <p className="text-xs text-purple-100">{selectedChat.online ? 'Active now' : 'Offline'}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('voice')}
+                className="hover:bg-white/20 text-white rounded-full h-8 w-8"
+                title="Voice call"
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('video')}
+                className="hover:bg-white/20 text-white rounded-full h-8 w-8"
+                title="Video call"
+              >
+                <VideoIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedChat(null)}
+                className="hover:bg-white/20 text-white rounded-full h-8 w-8"
+              >
+                <Minimize2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-end space-x-2 ${msg.senderId === user.id ? 'justify-end flex-row-reverse space-x-reverse' : 'justify-start'}`}
+              >
+                {/* Profile Avatar */}
+                <Link
+                  href={msg.senderId === user.id ? '/profile' : `/profile/${selectedChat.user.username}`}
+                  className="flex-shrink-0 mb-1 hover:opacity-80 transition-opacity"
+                  title={`View ${msg.senderId === user.id ? 'your' : selectedChat.user.profile?.name || selectedChat.user.username + "'s"} profile`}
+                >
+                  <Avatar className="h-6 w-6 ring-1 ring-gray-300 dark:ring-gray-600">
+                    <AvatarImage src={msg.senderId === user.id ? user.profile?.avatar : selectedChat.user.profile?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-xs">
+                      {msg.senderId === user.id 
+                        ? (user.profile?.name?.[0] || user.username[0])
+                        : (selectedChat.user.profile?.name?.[0] || selectedChat.user.username[0])
+                      }
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+
+                <div className="relative group">
+                  {/* Message Actions */}
+                  <div className={`absolute -top-8 ${msg.senderId === user.id ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1 bg-white dark:bg-gray-700 rounded-full px-2 py-1 shadow-lg`}>
+                    <button
+                      onClick={() => setShowReactions(showReactions === msg.id ? null : msg.id)}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full p-1 transition-colors"
+                      title="React"
+                    >
+                      <Smile className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </button>
+                    <button
+                      onClick={() => setReplyTo(msg)}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full p-1 transition-colors"
+                      title="Reply"
+                    >
+                      <Reply className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </button>
+                  </div>
+
+                  {/* Reaction Picker */}
+                  {showReactions === msg.id && (
+                    <div className={`absolute -top-14 ${msg.senderId === user.id ? 'right-0' : 'left-0'} bg-white dark:bg-gray-700 rounded-full px-3 py-2 shadow-xl border border-gray-200 dark:border-gray-600 flex space-x-1 z-10`}>
+                      {reactionEmojis.map((emoji, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleAddReaction(msg.id, emoji)}
+                          className="text-xl hover:scale-125 transition-transform"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div
+                    className={`max-w-[75%] px-4 py-2 rounded-2xl ${
+                      msg.senderId === user.id
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-sm'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-bl-sm'
+                    }`}
+                  >
+                    {/* Reply Preview */}
+                    {msg.replyTo && (
+                      <div className={`mb-2 pb-2 border-l-2 pl-2 text-xs opacity-75 ${
+                        msg.senderId === user.id ? 'border-white/30' : 'border-purple-500'
+                      }`}>
+                        <p className="font-semibold">{msg.replyTo.senderId === user.id ? 'You' : selectedChat.user.profile?.name || selectedChat.user.username}</p>
+                        <p className="truncate">{msg.replyTo.content}</p>
+                      </div>
+                    )}
+
+                    {/* Media Content */}
+                    {msg.type === 'image' && msg.mediaUrl && (
+                      <img src={msg.mediaUrl} alt="Shared image" className="rounded-lg max-w-full mb-2" />
+                    )}
+                    {msg.type === 'video' && msg.mediaUrl && (
+                      <video src={msg.mediaUrl} controls className="rounded-lg max-w-full mb-2" />
+                    )}
+                    {msg.type === 'voice' ? (
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        size="icon"
+                        className={`h-8 w-8 rounded-full ${
+                          msg.senderId === user.id
+                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                            : 'bg-purple-100 hover:bg-purple-200 text-purple-600'
+                        }`}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="flex-1 h-1 bg-white/30 dark:bg-gray-600 rounded-full overflow-hidden">
+                            <div className="h-full w-0 bg-white dark:bg-purple-500 rounded-full"></div>
+                          </div>
+                        </div>
+                        <p className="text-xs mt-1 opacity-75">{msg.duration}s</p>
+                      </div>
+                    </div>
+                    ) : (
+                      <p className="text-sm break-words">{msg.content}</p>
+                    )}
+                    <div className="flex items-center justify-end space-x-1 mt-1">
+                      <span className={`text-xs ${
+                        msg.senderId === user.id ? 'text-purple-100' : 'text-gray-400 dark:text-gray-500'
+                      }`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {msg.senderId === user.id && (
+                        msg.read ? (
+                          <CheckCheck className="h-3 w-3 text-purple-100" />
+                        ) : (
+                          <Check className="h-3 w-3 text-purple-100" />
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Reactions Display */}
+                  {msg.reactions && msg.reactions.length > 0 && (
+                    <div className={`absolute -bottom-3 ${msg.senderId === user.id ? 'right-2' : 'left-2'} flex space-x-1`}>
+                      {msg.reactions.map((reaction: any, i: number) => (
+                        <div
+                          key={i}
+                          className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full px-2 py-0.5 text-xs flex items-center space-x-1 shadow-sm"
+                        >
+                          <span>{reaction.emoji}</span>
+                          <span className="text-gray-600 dark:text-gray-300 font-semibold">{reaction.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Message Input */}
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            {/* Reply Preview */}
+            {replyTo && (
+              <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">Replying to {replyTo.senderId === user.id ? 'yourself' : selectedChat.user.profile?.name || selectedChat.user.username}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{replyTo.content}</p>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Media Preview */}
+            {mediaPreview && (
+              <div className="mb-2 relative inline-block">
+                {selectedMedia?.type.startsWith('video') ? (
+                  <video src={mediaPreview} className="h-20 rounded-lg" />
+                ) : (
+                  <img src={mediaPreview} alt="Preview" className="h-20 rounded-lg" />
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedMedia(null)
+                    setMediaPreview(null)
+                  }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {isRecording ? (
+              <div className="flex items-center space-x-3 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-full">
+                <div className="flex items-center space-x-2 flex-1">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Recording... {recordingTime}s
+                  </span>
+                </div>
+                <Button
+                  onClick={handleStopRecording}
+                  className="bg-red-500 hover:bg-red-600 text-white rounded-full h-9 w-9 p-0"
+                >
+                  <StopCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleMediaSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="pointer-events-none hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9 flex-shrink-0"
+                    title="Attach media"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </label>
+                <Button
+                  onClick={handleStartRecording}
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9 flex-shrink-0"
+                  title="Voice message"
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-colors duration-300"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() && !selectedMedia}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full h-9 w-9 p-0 flex-shrink-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Comments Modal */}
+      {showComments && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-3xl shadow-2xl max-h-[85vh] flex flex-col transition-colors duration-300 border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="relative p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl">
+                    <MessageCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Comments</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{postComments[showComments]?.length || 0} comments</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => {
+                    setShowComments(null)
+                    setCommentText('')
+                  }}
+                  className="hover:bg-white/50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300 rounded-full h-10 w-10 transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-900">
+              {postComments[showComments]?.length > 0 ? (
+                postComments[showComments].map((comment: any, index: number) => (
+                  <div 
+                    key={comment.id} 
+                    className="flex space-x-3 animate-in slide-in-from-bottom duration-300"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <Link href={`/profile/${comment.user.username}`} className="flex-shrink-0">
+                      <Avatar className="h-11 w-11 ring-2 ring-purple-500 hover:ring-purple-600 transition-all cursor-pointer">
+                        <AvatarImage src={comment.user.profile?.avatar} />
+                        <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold">
+                          {comment.user.profile?.name?.[0] || comment.user.username[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <Link href={`/profile/${comment.user.username}`} className="font-bold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                            {comment.user.profile?.name || comment.user.username}
+                          </Link>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">@{comment.user.username}</p>
+                        </div>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center">
+                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
+                          {formatTimeAgo(new Date(comment.createdAt))}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{comment.content}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="h-10 w-10 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <p className="text-gray-900 dark:text-white font-semibold text-lg mb-2">No comments yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Be the first to share your thoughts!</p>
+                </div>
+              )}
+            </div>
+
+            {/* Comment Input */}
+            <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-b-3xl">
+              <div className="flex items-start space-x-3">
+                <Avatar className="h-11 w-11 ring-2 ring-purple-500 flex-shrink-0 mt-1">
+                  <AvatarImage src={user.profile?.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold">
+                    {user.profile?.name?.[0] || user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-3">
+                  <textarea
+                    placeholder="Write a thoughtful comment..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handlePostComment(showComments)
+                      }
+                    }}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none transition-all"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-medium">Tip:</span> Press Enter to post, Shift+Enter for new line
+                    </p>
+                    <Button
+                      onClick={() => handlePostComment(showComments)}
+                      disabled={!commentText.trim() || commentLoading}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl px-8 py-2.5 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      {commentLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Posting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>Post Comment</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Modal */}
+      {showCallModal && callType && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center">
+          <div className="w-full max-w-2xl mx-4">
+            {/* Call Interface */}
+            <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl p-8 text-center shadow-2xl">
+              {/* User Info */}
+              <div className="mb-8">
+                <Avatar className="h-32 w-32 mx-auto ring-4 ring-white/30 mb-4">
+                  <AvatarImage src={selectedChat?.user.profile?.avatar} />
+                  <AvatarFallback className="bg-white text-purple-600 font-bold text-4xl">
+                    {selectedChat?.user.profile?.name?.[0] || selectedChat?.user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {selectedChat?.user.profile?.name || selectedChat?.user.username}
+                </h2>
+                <p className="text-purple-200 text-lg">
+                  {callType === 'video' ? 'Video calling...' : 'Voice calling...'}
+                </p>
+              </div>
+
+              {/* Video Preview (only for video calls) */}
+              {callType === 'video' && (
+                <div className="mb-8 relative">
+                  <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <VideoIcon className="h-24 w-24 text-gray-600" />
+                    </div>
+                    {/* Self video preview */}
+                    <div className="absolute bottom-4 right-4 w-32 h-24 bg-gray-800 rounded-xl border-2 border-white/30 overflow-hidden">
+                      <div className="w-full h-full flex items-center justify-center">
+                        <UserIcon className="h-12 w-12 text-gray-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Call Controls */}
+              <div className="flex items-center justify-center space-x-6">
+                {callType === 'video' && (
+                  <>
+                    <Button
+                      size="lg"
+                      className="h-14 w-14 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                      title="Toggle camera"
+                    >
+                      <VideoIcon className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="h-14 w-14 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                      title="Toggle microphone"
+                    >
+                      <Mic className="h-6 w-6" />
+                    </Button>
+                  </>
+                )}
+                {callType === 'voice' && (
+                  <Button
+                    size="lg"
+                    className="h-14 w-14 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                    title="Toggle microphone"
+                  >
+                    <Mic className="h-6 w-6" />
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  onClick={handleEndCall}
+                  className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg"
+                  title="End call"
+                >
+                  <PhoneOff className="h-7 w-7" />
+                </Button>
+              </div>
+
+              {/* Call Duration */}
+              <div className="mt-6">
+                <p className="text-white/60 text-sm">00:00</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { likeCrud, notificationCrud } from '@/lib/crud'
+import { likeCrud } from '@/lib/crud'
 import { prisma } from '@/lib/prisma'
+import { notifyLike } from '@/lib/notifications'
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +24,6 @@ export async function POST(
 
     const result = await likeCrud.toggle(params.id, payload.userId)
     
-    // Create notification if liked
     if (result.liked) {
       const post = await prisma.post.findUnique({
         where: { id: params.id },
@@ -37,11 +37,10 @@ export async function POST(
         })
         
         if (liker) {
-          await notificationCrud.create({
-            userId: post.userId,
-            type: 'like',
-            title: 'New Like',
-            content: `${liker.profile?.name || liker.username} liked your post`
+          await notifyLike(params.id, post.userId, {
+            id: liker.id,
+            name: liker.profile?.name,
+            username: liker.username
           })
         }
       }
